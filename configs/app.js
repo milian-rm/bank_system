@@ -8,7 +8,9 @@ import helmet from 'helmet';
 import { corsOptions } from './cors-configuration.js'; // Agregué el .js, es buena práctica en módulos
 import { dbConnection} from './db.js';
 import { helmetConfiguration } from './helmet-configuration.js';
-
+import accountRoutes from '../src/Account/account.routes.js';
+import {requestLimit } from '../middlewares/request-limit.js';
+import { errorHandler } from '../middlewares/handle-errors.js';
 // Importaciones de Rutas
 const BASE_URL = '/bankSystem/v1';
 
@@ -31,7 +33,7 @@ const middleware = (app) => {
 
 //Integracion de todas las rutas
 const routes = (app) => {
-
+app.use(`${BASE_URL}/account`, accountRoutes);
 
 }
 
