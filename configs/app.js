@@ -6,7 +6,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import { corsOptions } from './cors-configuration.js'; // Agregué el .js, es buena práctica en módulos
-import { dbConnection} from './db.js';
+import { dbConnection } from './db.js';
 import { helmetConfiguration } from './helmet-configuration.js';
 
 // Importaciones de Rutas
@@ -25,7 +25,7 @@ const middleware = (app) => {
     //Las consultas Json tendrán un tamaño máximo de 10mb
     app.use(express.json({ limit: '10mb' }));
     //Límite de peticiones por IP
-    app.use(requestLimit);
+    //app.use(requestLimit);
     //Morgan nos ayudará a detectar errores del lado del usuario
     app.use(morgan('dev'));
 }
@@ -38,22 +38,22 @@ const routes = (app) => {
 
 
 
-const initServer = async () => { 
+const initServer = async () => {
     const app = express();
     const PORT = process.env.PORT || 3001;
 
     try {
         // 1. Conectar a DB (Usa await para esperar la conexión)
-        await dbConnection(); 
-        
+        await dbConnection();
+
         // 2. Configurar Middlewares
-        middleware(app); 
-        
+        middleware(app);
+
         // 3. Configurar Rutas (Incluyendo el health check)
         routes(app);
 
         // 4. Manejador de errores (debe ir después de las rutas)
-        app.use(errorHandler);
+        //app.use(errorHandler);
 
         // Mueve el app.get del health check AQUÍ (antes del listen)
         app.get(`${BASE_URL}/health`, (req, res) => {
@@ -63,6 +63,7 @@ const initServer = async () => {
         // 4. Iniciar escucha
         app.listen(PORT, () => {
             console.log(`Servidor corriendo en el puerto ${PORT}`);
+            console.log(`Base URL: http://localhost:${PORT}${BASE_URL}`);
         });
 
     } catch (error) {

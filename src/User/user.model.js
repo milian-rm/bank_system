@@ -24,10 +24,8 @@ const userSchema = new mongoose.Schema({
     UserEmail: {
         type: String,
         required: [true, 'El correo es requerido'],
-        unique: true,
         trim: true,
-        lowercase: true,
-        match: ['Correo electrónico no válido']
+        lowercase: true
     },
     UserPassword: {
         type: String,
