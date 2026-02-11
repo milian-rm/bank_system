@@ -12,6 +12,7 @@ import { helmetConfiguration } from './helmet-configuration.js';
 // Importaciones de Rutas
 const BASE_URL = '/bankSystem/v1';
 
+import userRoutes from '../src/User/user.routes.js';
 
 
 
@@ -31,8 +32,7 @@ const middleware = (app) => {
 
 //Integracion de todas las rutas
 const routes = (app) => {
-
-
+    app.use(`${BASE_URL}/users`, userRoutes)
 }
 
 
