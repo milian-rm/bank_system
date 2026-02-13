@@ -13,7 +13,6 @@ import { errorHandler } from '../middlewares/handle-errors.js';
 
 // Importaciones de Rutas
 const BASE_URL = '/bankSystem/v1';
-
 import userRoutes from '../src/User/user.routes.js';
 
 
@@ -27,14 +26,14 @@ const middleware = (app) => {
     //Las consultas Json tendrán un tamaño máximo de 10mb
     app.use(express.json({ limit: '10mb' }));
     //Límite de peticiones por IP
-    //app.use(requestLimit);
+    app.use(requestLimit);
     //Morgan nos ayudará a detectar errores del lado del usuario
     app.use(morgan('dev'));
 }
 
 //Integracion de todas las rutas
 const routes = (app) => {
-
+    app.use(`${BASE_URL}/users`, userRoutes);
 
 }
 
@@ -56,7 +55,7 @@ const initServer = async () => {
         routes(app);
 
         // 4. Manejador de errores (debe ir después de las rutas)
-        //app.use(errorHandler);
+        app.use(errorHandler);
 
         // Mueve el app.get del health check AQUÍ (antes del listen)
         app.get(`${BASE_URL}/health`, (req, res) => {
