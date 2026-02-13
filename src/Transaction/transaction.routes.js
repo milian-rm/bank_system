@@ -10,7 +10,7 @@ import {
 import {
     validateCreateTransaction,
     validateTransactionId
-} from '../../middlewares/transaction-validators.js';
+} from '../../middlewares/transaction.validator.js';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 'use strict';
 
-import Transaction from './transaction.model';
+import Transaction from './transaction.model.js';
 
 // 1. obtener transacciones
 export const getTransactions = async (req, res) => {
