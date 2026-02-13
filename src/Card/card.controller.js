@@ -1,54 +1,94 @@
-'use strict';
+import Card from './card.model.js';
+import { cloudinary } from '../../middlewares/file-uploader.js';
 
-import mongoose from 'mongoose';
+// Obtener todas las tarjetas
+export const getCards = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, isActive = true } = req.query;
+        const filter = { isActive };
 
-const cardSchema = new mongoose.Schema({
-    cardNumber: { 
-        type: String, 
-        required: [true, 'El número de tarjeta es obligatorio'],
-        unique: true,
-        trim: true,
-        // Validación simple de 16 dígitos
-        match: [/^\d{16}$/, 'El número de tarjeta debe tener 16 dígitos']
-    },
-    holderName: {
-        type: String,
-        required: [true, 'El nombre del titular es obligatorio'],
-        trim: true,
-        uppercase: true
-    },
-    expirationDate: {
-        type: String, // Formato MM/YY
-        required: [true, 'La fecha de expiración es obligatoria'],
-        trim: true
-    },
-    cvv: {
-        type: String,
-        required: [true, 'El CVV es obligatorio'],
-        minLength: 3,
-        maxLength: 4
-    },
-    type: {
-        type: String,
-        enum: ['DEBIT', 'CREDIT'],
-        default: 'DEBIT'
-    },
-    brand: {
-        type: String,
-        enum: ['VISA', 'MASTERCARD', 'AMEX'],
-        required: true
-    },
-    image: { 
-        type: String,
-        default: 'cards/default_card' 
-    },
-    isActive: {
-        type: Boolean,
-        default: true
+        const cards = await Card.find(filter)
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+            .sort({ createdAt: -1 });
+
+        const total = await Card.countDocuments(filter);
+
+        res.status(200).json({
+            success: true,
+            data: cards,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalRecords: total,
+                limit
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al obtener las tarjetas', error: error.message });
     }
-}, {
-    timestamps: true,
-    versionKey: false
-});
+};
 
-export default mongoose.model('Card', cardSchema);
+// Crear nueva tarjeta
+export const createCard = async (req, res) => {
+    try {
+        const data = req.body;
+        
+        if (req.file) {
+            const extension = req.file.path.split('.').pop();
+            const relativePath = req.file.filename; 
+            data.image = `${relativePath}.${extension}`;
+        }
+
+        const card = new Card(data);
+        await card.save();
+
+        res.status(201).json({ success: true, message: 'Tarjeta creada exitosamente', data: card });
+    } catch (error) {
+        res.status(400).json({ success: false, message: 'Error al crear la tarjeta', error: error.message });
+    }
+};
+
+// Actualizar tarjeta (por ejemplo, cambiar límites o diseño)
+export const updateCard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        if (req.file) {
+            const currentCard = await Card.findById(id);
+            if (currentCard?.image && !currentCard.image.includes('default_card')) {
+                const imageName = currentCard.image.split('.')[0];
+                try { await cloudinary.uploader.destroy(imageName); } catch (e) { console.log(e); }
+            }
+            const extension = req.file.path.split('.').pop();
+            data.image = `${req.file.filename}.${extension}`;
+        }
+        
+        const card = await Card.findByIdAndUpdate(id, data, { new: true });
+        if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+
+        res.status(200).json({ success: true, data: card });
+    } catch (error) {
+        res.status(400).json({ success: false, message: 'Error al actualizar', error: error.message });
+    }
+};
+
+// Activar/Desactivar tarjeta (Bloqueo bancario)
+export const changeCardStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const isActive = req.url.includes('/activate');
+        
+        const card = await Card.findByIdAndUpdate(id, { isActive }, { new: true });
+        if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+
+        res.status(200).json({
+            success: true,
+            message: `Tarjeta ${isActive ? 'activada' : 'bloqueada'} correctamente`,
+            data: card
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+    }
+};

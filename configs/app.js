@@ -32,7 +32,6 @@ const middleware = (app) => {
 //Integracion de todas las rutas
 const routes = (app) => {
 
-
 }
 
 

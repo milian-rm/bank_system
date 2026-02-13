@@ -66,7 +66,7 @@ const createCloudinaryUploader = (folder) => {
  
 // ----------------------------------------------------------------------------------------------------------
 // Aqui van los metodos para la actualización de imagenes, se pueden crear mas metodos para otras carpetas
- 
+
 // ----------------------------------------------------------------------------------------------------------
 
 // Export cloudinary instance para usar en delete-file-on-error
