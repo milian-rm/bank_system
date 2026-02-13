@@ -12,6 +12,7 @@ import { requestLimit } from '../middlewares/request-limit.js';
 import { errorHandler } from '../middlewares/handle-errors.js';
 
 // Importaciones de Rutas
+// import paymentRoutes from '../src/Payment/payment.routes.js';import paymentRoutes from '../src/Payment/payment.routes.js';
 const BASE_URL = '/bankSystem/v1';
 import userRoutes from '../src/User/user.routes.js';
 import accountRoutes from '../src/Account/account.routes.js';
