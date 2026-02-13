@@ -14,6 +14,7 @@ import { errorHandler } from '../middlewares/handle-errors.js';
 // Importaciones de Rutas
 const BASE_URL = '/bankSystem/v1';
 import userRoutes from '../src/User/user.routes.js';
+import accountRoutes from '../src/Account/account.routes.js';
 
 
 
@@ -34,7 +35,7 @@ const middleware = (app) => {
 //Integracion de todas las rutas
 const routes = (app) => {
     app.use(`${BASE_URL}/users`, userRoutes);
-
+    app.use(`${BASE_URL}/accounts`, accountRoutes);
 }
 
 
