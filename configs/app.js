@@ -9,8 +9,8 @@ import { corsOptions } from './cors-configuration.js'; // Agregué el .js, es bu
 import { dbConnection} from './db.js';
 import { helmetConfiguration } from './helmet-configuration.js';
 import accountRoutes from '../src/Account/account.routes.js';
-import {requestLimit } from '../middlewares/request-limit.js';
-import { errorHandler } from '../middlewares/handle-errors.js';
+// import {requestLimit } from '../middlewares/request-limit.js';
+//import { errorHandler } from '../middlewares/handle-errors.js';
 // Importaciones de Rutas
 const BASE_URL = '/bankSystem/v1';
 
@@ -26,7 +26,7 @@ const middleware = (app) => {
     //Las consultas Json tendrán un tamaño máximo de 10mb
     app.use(express.json({ limit: '10mb' }));
     //Límite de peticiones por IP
-    app.use(requestLimit);
+   // app.use(requestLimit);
     //Morgan nos ayudará a detectar errores del lado del usuario
     app.use(morgan('dev'));
 }
@@ -55,7 +55,7 @@ const initServer = async () => {
         routes(app);
 
         // 4. Manejador de errores (debe ir después de las rutas)
-        app.use(errorHandler);
+       // app.use(errorHandler);
 
         // Mueve el app.get del health check AQUÍ (antes del listen)
         app.get(`${BASE_URL}/health`, (req, res) => {
