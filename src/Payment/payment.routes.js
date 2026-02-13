@@ -1,10 +1,11 @@
 
 import { Router } from 'express';
-import { createPayment } from './payment.controller.js';
-import { validatePayment } from './payment.validator.js';
+import { createPayment, getPayments } from './payment.controller.js';
+import { paymentValidator } from './payment.validator.js';
 
 const api = Router();
 
-api.post('/', [validatePayment], createPayment);
+api.post('/', [paymentValidator], createPayment);
+api.get('/', getPayments);
 
 export default api;
