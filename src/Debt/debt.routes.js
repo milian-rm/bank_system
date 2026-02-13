@@ -11,7 +11,7 @@ import {
     validateCreateDebt, 
     validateDebtId, 
     validatePayment 
-} from '../../middlewares/debt.validators.js';
+} from '../../middlewares/debt.validator.js';
 
 const router = Router();
 

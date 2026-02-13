@@ -1,8 +1,8 @@
 'use strict';
 
-import Debt from './debt.model';
+import Debt from './debt.model.js';
 
-// 1. OBTENER DEUDAS (Con Paginación y Filtros)
+// 1. obtener deudas
 export const getDebts = async (req, res) => {
     try {
         const { page = 1, limit = 10, debtorId, status } = req.query;
@@ -31,7 +31,7 @@ export const getDebts = async (req, res) => {
     }
 };
 
-// 2. CREAR DEUDA
+// 2. crear deuda
 export const createDebt = async (req, res) => {
     try {
         const debt = new Debt(req.body);
@@ -42,7 +42,7 @@ export const createDebt = async (req, res) => {
     }
 };
 
-// 3. REGISTRAR UN PAGO A LA DEUDA
+// 3. pago deuda
 export const registerPayment = async (req, res) => {
     try {
         const { id } = req.params;
