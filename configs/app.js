@@ -12,12 +12,12 @@ import { requestLimit } from '../middlewares/request-limit.js';
 import { errorHandler } from '../middlewares/handle-errors.js';
 
 // Importaciones de Rutas
-// import paymentRoutes from '../src/Payment/payment.routes.js';import paymentRoutes from '../src/Payment/payment.routes.js';
 const BASE_URL = '/bankSystem/v1';
 import userRoutes from '../src/User/user.routes.js';
 import accountRoutes from '../src/Account/account.routes.js';
 import transactionRoutes from '../src/Transaction/transaction.routes.js';
 import debtRoutes from '../src/Debt/debt.routes.js';
+import paymentRoutes from '../src/Payment/payment.routes.js';
 
 
 
@@ -41,6 +41,7 @@ const routes = (app) => {
     app.use(`${BASE_URL}/accounts`, accountRoutes);
     app.use(`${BASE_URL}/transactions`, transactionRoutes);
     app.use(`${BASE_URL}/debt`, debtRoutes);
+    app.use(`${BASE_URL}/payment`, paymentRoutes);
 }
 
 
