@@ -19,6 +19,7 @@ import transactionRoutes from '../src/Transaction/transaction.routes.js';
 import debtRoutes from '../src/Debt/debt.routes.js';
 import paymentRoutes from '../src/Payment/payment.routes.js';
 import cardRoutes from '../src/Card/card.routes.js';
+import authRoutes from '../src/Auth/auth.routes.js';
 
 
 const middleware = (app) => {
@@ -43,6 +44,7 @@ const routes = (app) => {
     app.use(`${BASE_URL}/debt`, debtRoutes);
     app.use(`${BASE_URL}/payment`, paymentRoutes);
     app.use(`${BASE_URL}/cards`, cardRoutes);
+    app.use(`${BASE_URL}/auth`, authRoutes);
 }
 
 
