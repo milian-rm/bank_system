@@ -1,14 +1,14 @@
-'use strict';
+import { Schema, model } from 'mongoose';
 
-import mongoose from 'mongoose';
-
-const transactionSchema = new mongoose.Schema({
+const transactionSchema = Schema({
     AccountOriginId: {
-        type: Number,
+        type: Schema.Types.ObjectId,
+        ref: 'Account',
         required: true,
     },
     AccountDestinyId: {
-        type: Number,
+        type: Schema.Types.ObjectId,
+        ref: 'Account',
         required: true
     },
     Amount: {
@@ -23,17 +23,15 @@ const transactionSchema = new mongoose.Schema({
     Type: {
         type: String,
         required: true,
-        enum: {
-            values: ['Transferencia', 'Deposito'],
-        }
+        enum: ['Transferencia', 'Deposito']
     },
     Description: {
         type: String,
         required: true,
-        maxLength: [255, 'La descripcion no puede ser mayor a 255 caracteres']
+        maxLength: [255, 'La descripción no puede ser mayor a 255 caracteres']
     }
+}, {
+    versionKey: false
 });
 
-transactionSchema.index({AccountOriginId: 1});
-
-export default mongoose.model('Transaction', transactionSchema)
+export default model('Transaction', transactionSchema);

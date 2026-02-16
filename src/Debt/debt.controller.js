@@ -1,8 +1,5 @@
-'use strict';
-
 import Debt from './debt.model.js';
 
-// 1. obtener deudas
 export const getDebts = async (req, res) => {
     try {
         const { page = 1, limit = 10, debtorId, status } = req.query;
@@ -11,9 +8,11 @@ export const getDebts = async (req, res) => {
         if (status) filter.status = status;
 
         const debts = await Debt.find(filter)
+            .populate('debtorId', 'UserName UserSurname UserEmail') // Datos del deudor
+            .populate('creditorId', 'UserName UserSurname') // Datos del acreedor
             .limit(limit * 1)
             .skip((page - 1) * limit)
-            .sort({ dueDate: 1 }); // Ordenar por las más próximas a vencer
+            .sort({ dueDate: 1 });
 
         const total = await Debt.countDocuments(filter);
 
@@ -21,9 +20,9 @@ export const getDebts = async (req, res) => {
             success: true,
             data: debts,
             pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limit),
-                totalRecords: total
+                total,
+                limit: parseInt(limit),
+                page: parseInt(page)
             }
         });
     } catch (error) {
@@ -31,7 +30,6 @@ export const getDebts = async (req, res) => {
     }
 };
 
-// 2. crear deuda
 export const createDebt = async (req, res) => {
     try {
         const debt = new Debt(req.body);
@@ -42,7 +40,6 @@ export const createDebt = async (req, res) => {
     }
 };
 
-// 3. pago deuda
 export const registerPayment = async (req, res) => {
     try {
         const { id } = req.params;
@@ -52,21 +49,16 @@ export const registerPayment = async (req, res) => {
         if (!debt) return res.status(404).json({ success: false, message: 'Deuda no encontrada' });
 
         if (debt.status === 'Pagado') {
-            return res.status(400).json({ success: false, message: 'Esta deuda ya ha sido liquidada' });
+            return res.status(400).json({ success: false, message: 'Ya está pagada' });
         }
 
-        // Actualizar monto restante
         debt.remainingAmount = Math.max(0, debt.remainingAmount - amount);
-
-        // Actualizar estado basado en el saldo
-        if (debt.remainingAmount === 0) {
-            debt.status = 'Pagado';
-        } else {
-            debt.status = 'Parcial';
-        }
+        
+        if (debt.remainingAmount === 0) debt.status = 'Pagado';
+        else debt.status = 'Parcial';
 
         await debt.save();
-        res.status(200).json({ success: true, message: 'Pago registrado con éxito', data: debt });
+        res.status(200).json({ success: true, message: 'Abono registrado', data: debt });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }

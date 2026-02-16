@@ -13,6 +13,9 @@ export const validateCreateCard = [
         .isLength({ min: 3, max: 4 }).isNumeric(),
     body('brand')
         .isIn(['VISA', 'MASTERCARD', 'AMEX']).withMessage('Marca de tarjeta no soportada'),
+    body('account')
+        .notEmpty().withMessage('El ID de la cuenta es obligatorio')
+        .isMongoId().withMessage('No es un ID de cuenta válido'),    
     checkValidators
 ];
 
