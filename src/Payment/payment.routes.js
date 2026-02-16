@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
 import { createPayment, getPayments } from './payment.controller.js';
-import { validatePayment } from './payment.validator.js';
+import { validatePayment } from '../../middlewares/payment.validator.js';
 
 const api = Router();
 

@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 import { createAccount, getAccounts } from "./account.controller.js";
-import { validateCreateAccount } from "./account.validator.js";
+import { validateCreateAccount } from "../../middlewares/account.validator.js"; 
 
 const router = Router();
 

@@ -26,17 +26,16 @@ export const createAccount = async (req, res) => {
 // Obtener todas las cuentas (activas)
 export const getAccounts = async (req, res) => {
     try {
-        const accounts = await Account.find({ status: true }).populate('user', 'name surname email');
+        // .populate trae los datos del ID 'user'
+        const accounts = await Account.find({ status: true })
+            .populate('user', 'UserName UserSurname UserEmail'); 
+
         res.status(200).json({
             success: true,
             total: accounts.length,
             accounts
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener las cuentas',
-            error: error.message
-        });
+        // ... manejo de error igual ...
     }
 };

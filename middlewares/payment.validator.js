@@ -1,5 +1,5 @@
 import { body } from 'express-validator';
-import { checkValidators } from '../../middlewares/check-validators.js';
+import { checkValidators } from './check-validators.js';
 
 export const validatePayment = [
     body('amount', 'Monto inválido').notEmpty().isNumeric(),

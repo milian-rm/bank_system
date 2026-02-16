@@ -1,35 +1,29 @@
-'use strict';
+import { Schema, model } from 'mongoose';
 
-import mongoose from 'mongoose';
-
-const debtSchema = new mongoose.Schema({
+const debtSchema = Schema({
     title: {
         type: String,
         required: true,
-        trim: true,
-        maxlength: [100, 'El título no puede exceder los 100 caracteres']
+        trim: true
     },
-    debtorId: { // Quién debe el dinero
-        type: Number,
+    debtorId: { // Quién debe
+        type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
     creditorId: { // A quién se le debe
-        type: Number,
+        type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
     totalAmount: {
         type: Number,
         required: true,
-        min: [0.01, 'El monto debe ser mayor a 0']
+        min: 0.01
     },
-    remainingAmount: { // Lo que falta por pagar
+    remainingAmount: {
         type: Number,
-        required: true,
-        default: function() {
-            return this.totalAmount;
-        }
+        default: function() { return this.totalAmount; }
     },
     dueDate: {
         type: Date,
@@ -41,12 +35,8 @@ const debtSchema = new mongoose.Schema({
         default: 'Pendiente'
     },
     description: {
-        type: String,
-        maxlength: [255, 'La descripción es muy larga']
+        type: String
     }
 }, { timestamps: true });
 
-// Índice para buscar deudas rápidas por usuario y estado
-debtSchema.index({ debtorId: 1, status: 1 });
-
-export default mongoose.model('Debt', debtSchema);
+export default model('Debt', debtSchema);

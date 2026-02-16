@@ -45,7 +45,13 @@ const cardSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    }
+    },
+    account: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Account',
+        required: [true, 'La tarjeta debe estar asociada a una cuenta bancaria']
+    },
+
 }, {
     timestamps: true,
     versionKey: false
