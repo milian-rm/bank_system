@@ -77,12 +77,25 @@ bank_system/
 
 # 🔌 Endpoints Principales
 
+---
+
 ## 🔐 Autenticación
 
 | Método | Endpoint | Descripción |
 |--------|----------|------------|
-| POST | `/bankSystem/v1/auth/register` | Registrar nuevo administrador |
+| POST | `/bankSystem/v1/auth/register` | Registrar nuevo usuario (Admin/User) |
 | POST | `/bankSystem/v1/auth/login` | Iniciar sesión (Simple Auth) |
+
+---
+
+## 👤 Usuarios
+
+| Método | Endpoint | Descripción |
+|--------|----------|------------|
+| GET | `/bankSystem/v1/users` | Listar todos los usuarios |
+| GET | `/bankSystem/v1/users/:id` | Obtener detalle de un usuario |
+| PUT | `/bankSystem/v1/users/:id` | Actualizar datos de usuario |
+| PUT | `/bankSystem/v1/users/:id/status` | Activar o Desactivar usuario |
 
 ---
 
@@ -90,8 +103,8 @@ bank_system/
 
 | Método | Endpoint | Descripción |
 |--------|----------|------------|
-| GET | `/bankSystem/v1/accounts` | Listar todas las cuentas |
-| POST | `/bankSystem/v1/accounts` | Crear nueva cuenta bancaria |
+| GET | `/bankSystem/v1/accounts` | Listar cuentas con datos del dueño |
+| POST | `/bankSystem/v1/accounts` | Crear cuenta (Ahorro/Monetaria) |
 
 ---
 
@@ -99,28 +112,205 @@ bank_system/
 
 | Método | Endpoint | Descripción |
 |--------|----------|------------|
-| POST | `/bankSystem/v1/cards` | Crear tarjeta con imagen (Cloudinary) |
+| GET | `/bankSystem/v1/cards` | Listar tarjetas activas |
+| POST | `/bankSystem/v1/cards` | Crear tarjeta (Imagen o Link) |
+| PUT | `/bankSystem/v1/cards/:id` | Actualizar tarjeta |
+| PUT | `/bankSystem/v1/cards/:id/activate` | Activar tarjeta |
 | PUT | `/bankSystem/v1/cards/:id/desactivate` | Bloquear tarjeta por seguridad |
 
 ---
 
-# 📊 Ejemplo de Petición
+## 💸 Transacciones
 
-## Crear Cuenta Bancaria
+| Método | Endpoint | Descripción |
+|--------|----------|------------|
+| GET | `/bankSystem/v1/transactions` | Ver historial de transacciones |
+| GET | `/bankSystem/v1/transactions/:id` | Detalle de una transacción |
+| POST | `/bankSystem/v1/transactions` | Realizar Transferencia o Depósito |
+
+---
+
+## 📉 Deudas (Control de Créditos)
+
+| Método | Endpoint | Descripción |
+|--------|----------|------------|
+| GET | `/bankSystem/v1/debt` | Listar deudas (Filtros disponibles) |
+| POST | `/bankSystem/v1/debt` | Registrar deuda entre usuarios |
+| PATCH | `/bankSystem/v1/debt/:id/payment` | Abonar o pagar deuda |
+
+---
+
+## 🧾 Pagos de Servicios
+
+| Método | Endpoint | Descripción |
+|--------|----------|------------|
+| GET | `/bankSystem/v1/payment` | Historial de pagos de servicios |
+| POST | `/bankSystem/v1/payment` | Realizar pago desde cuenta |
+
+---
+
+# 📊 Ejemplos de Petición (JSON)
+
+Aquí encontrarás los cuerpos JSON (Body) necesarios para probar cada entidad en Postman.
+
+---
+
+## 🔐 1. Auth (Registro y Login)
+
+### Registrar Nuevo Usuario
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/auth/register`
+
+```json
+{
+  "UserName": "Kevin",
+  "UserSurname": "Velasquez",
+  "UserDPI": "1000000000001",
+  "UserEmail": "kevin@kinal.edu.gt",
+  "UserPassword": "password123",
+  "UserRol": "ADMIN"
+}
+```
+
+---
+
+### Iniciar Sesión
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/auth/login`
+
+```json
+{
+  "UserEmail": "kevin@kinal.edu.gt",
+  "UserPassword": "password123"
+}
+```
+
+---
+
+## 👤 2. Usuario (Gestión)
+
+### Actualizar Perfil
+
+**PUT**  
+`http://localhost:3001/bankSystem/v1/users/ID_DEL_USUARIO`
+
+```json
+{
+  "UserName": "Kevin Alejandro",
+  "UserSurname": "Velasquez",
+  "UserEmail": "nuevo_correo@kinal.edu.gt"
+}
+```
+
+---
+
+## 🏦 3. Cuenta Bancaria
+
+### Crear Cuenta
 
 **POST**  
 `http://localhost:3001/bankSystem/v1/accounts`
 
-**Content-Type:** `application/json`
+```json
+{
+  "accountNumber": "1112223334",
+  "accountType": "AHORRO",
+  "balance": 1500.00,
+  "user": "ID_DEL_USUARIO_PROPIETARIO"
+}
+```
+
+---
+
+## 💳 4. Tarjeta
+
+### Crear Tarjeta (Con Link de Imagen)
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/cards`
 
 ```json
 {
-  "accountNumber": "1020304050",
-  "accountType": "AHORRO",
-  "balance": 500.00,
-  "user": "id-del-usuario-propietario"
+  "cardNumber": "4500123412341234",
+  "holderName": "KEVIN VELASQUEZ",
+  "expirationDate": "12/28",
+  "cvv": "999",
+  "brand": "VISA",
+  "account": "ID_DE_LA_CUENTA_BANCARIA",
+  "image": "https://cdn-icons-png.flaticon.com/512/10542/10542523.png"
 }
 ```
+
+---
+
+## 💸 5. Transacción
+
+### Realizar Transferencia
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/transactions`
+
+```json
+{
+  "AccountOriginId": "ID_CUENTA_ORIGEN",
+  "AccountDestinyId": "ID_CUENTA_DESTINO",
+  "Amount": 250.00,
+  "Type": "Transferencia",
+  "Description": "Pago de almuerzo"
+}
+```
+
+---
+
+## 📉 6. Deuda
+
+### Registrar Nueva Deuda
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/debt`
+
+```json
+{
+  "title": "Préstamo Personal",
+  "debtorId": "ID_DEL_USUARIO_DEUDOR",
+  "creditorId": "ID_DEL_USUARIO_ACREEDOR",
+  "totalAmount": 500.00,
+  "dueDate": "2026-12-31"
+}
+```
+
+---
+
+### Abonar a Deuda
+
+**PATCH**  
+`http://localhost:3001/bankSystem/v1/debt/ID_DEUDA/payment`
+
+```json
+{
+  "amount": 100.00
+}
+```
+
+---
+
+## 🧾 7. Pago de Servicios
+
+### Realizar Pago
+
+**POST**  
+`http://localhost:3001/bankSystem/v1/payment`
+
+```json
+{
+  "amount": 75.50,
+  "description": "Pago de Internet Residencial",
+  "account": "ID_DE_LA_CUENTA_PAGADORA"
+}
+```
+
 
 ---
 
