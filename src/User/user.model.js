@@ -34,9 +34,8 @@ const userSchema = new mongoose.Schema({
     },
     UserStatus: {
         type: String,
-        trim: true,
-        maxLength: [500, 'La descripción no puede exceder 500 caracteres'],
-        default: 'ACTIVO'
+        enum: ['ACTIVE', 'INACTIVE'], 
+        default: 'ACTIVE' 
     },
     UserCreatedAt: {
         type: Date,
