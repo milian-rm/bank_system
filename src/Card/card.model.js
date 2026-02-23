@@ -38,6 +38,16 @@ const cardSchema = new mongoose.Schema({
         enum: ['VISA', 'MASTERCARD', 'AMEX'],
         required: true
     },
+    creditLimit: {
+        type: Number,
+        default: 0,
+        min: [0, 'El límite de crédito no puede ser negativo']
+    },
+    consumedAmount: {
+        type: Number,
+        default: 0,
+        min: [0, 'El monto consumido no puede ser negativo']
+    },
     image: { 
         type: String,
         default: 'cards/default_card' 

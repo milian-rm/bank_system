@@ -1,5 +1,6 @@
 import Card from './card.model.js';
 import Account from '../Account/account.model.js';
+import Payment from '../Payment/payment.model.js';
 import { cloudinary } from '../../middlewares/file-uploader.js';
 
 // Obtener todas las tarjetas (con datos de Cuenta y Usuario)
@@ -136,19 +137,75 @@ export const changeCardStatus = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Detecta si la URL termina en 'activate' o 'desactivate'
-        const isActive = req.path.includes('activate') && !req.path.includes('desactivate');
-        
-        const card = await Card.findByIdAndUpdate(id, { isActive }, { new: true });
-        
+        const card = await Card.findById(id);
         if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+
+        // El toggle mágico: invierte el estado actual
+        card.isActive = !card.isActive;
+        await card.save();
 
         res.status(200).json({
             success: true,
-            message: `Tarjeta ${isActive ? 'activada' : 'bloqueada'} correctamente`,
+            message: `Tarjeta ${card.isActive ? 'activada' : 'desactivada'} correctamente`,
             data: card
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+    }
+};
+
+export const payCreditCard = async (req, res) => {
+    try {
+        const { id } = req.params; 
+        const { amount, accountId } = req.body; 
+
+        const card = await Card.findById(id);
+        if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+
+        const accountOrigin = await Account.findById(accountId);
+        if (!accountOrigin) return res.status(404).json({ success: false, message: 'Cuenta bancaria de origen no encontrada' });
+
+        // Validaciones del negocio bancario
+        if (card.type !== 'CREDIT') {
+            return res.status(400).json({ success: false, message: 'Solo las tarjetas de crédito pueden recibir pagos de saldo' });
+        }
+
+        if (card.consumedAmount === 0) {
+            return res.status(400).json({ success: false, message: 'Esta tarjeta no tiene saldo pendiente por pagar' });
+        }
+
+        if (accountOrigin.balance < amount) {
+            return res.status(400).json({ success: false, message: 'Fondos insuficientes en la cuenta para realizar este pago' });
+        }
+
+        if (amount > card.consumedAmount) {
+            return res.status(400).json({ success: false, message: `El monto supera el saldo consumido (Deuda actual: ${card.consumedAmount})` });
+        }
+
+        // Descontar la plata de la cuenta y bajarle a la deuda de la tarjeta
+        accountOrigin.balance -= amount; 
+        card.consumedAmount -= amount;   
+
+        await accountOrigin.save();
+        await card.save();
+
+        // Generar el comprobante/historial en la colección Payment
+        const paymentRecord = new Payment({
+            amount: amount,
+            description: `Pago a tarjeta de crédito terminación ${card.cardNumber.slice(-4)}`,
+            account: accountOrigin._id
+        });
+        await paymentRecord.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Pago de tarjeta realizado exitosamente',
+            data: {
+                tarjetaActualizada: card,
+                nuevoSaldoCuenta: accountOrigin.balance
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al procesar el pago', error: error.message });
     }
 };

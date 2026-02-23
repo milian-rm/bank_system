@@ -1,4 +1,5 @@
 import Debt from './debt.model.js';
+import User from '../User/user.model.js';
 
 export const getDebts = async (req, res) => {
     try {
@@ -32,9 +33,26 @@ export const getDebts = async (req, res) => {
 
 export const createDebt = async (req, res) => {
     try {
-        const debt = new Debt(req.body);
+        const data = req.body;
+
+        // ¡La magia de Roberto! Si no mandan acreedor, el Banco (ADMIN) asume la deuda
+        if (!data.creditorId) {
+            // Buscamos al primer usuario que sea ADMIN
+            const bankAdmin = await User.findOne({ UserRol: 'ADMIN' });
+            
+            if (!bankAdmin) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'No se encontró un usuario ADMIN (Banco) para asignar como acreedor. Por favor, crea un administrador primero.' 
+                });
+            }
+            // Le asignamos el ID del banco a la deuda
+            data.creditorId = bankAdmin._id;
+        }
+
+        const debt = new Debt(data);
         await debt.save();
-        res.status(201).json({ success: true, message: 'Deuda registrada', data: debt });
+        res.status(201).json({ success: true, message: 'Deuda registrada exitosamente', data: debt });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }

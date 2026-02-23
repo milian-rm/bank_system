@@ -6,7 +6,7 @@ export const createTransaction = async (req, res) => {
     try {
         const data = req.body;
         
-        // Validar que las cuentas existan
+        // 1. Validar que las cuentas existan
         const origin = await Account.findById(data.AccountOriginId);
         const destiny = await Account.findById(data.AccountDestinyId);
 
@@ -14,24 +14,39 @@ export const createTransaction = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Una de las cuentas no existe' });
         }
 
-        // Lógica simple: Si es transferencia, verificar saldo
-        if (data.Type === 'Transferencia' && origin.balance < data.Amount) {
-            return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+        // 2. Validar que las cuentas estén activas (¡Integración con el Soft-Delete!)
+        if (!origin.status || !destiny.status) {
+            return res.status(400).json({ success: false, message: 'Una de las cuentas está inactiva y no puede realizar transacciones' });
         }
 
-        // Crear registro
+        // 3. Verificar saldo de la cuenta de origen
+        if (origin.balance < data.Amount) {
+            return res.status(400).json({ success: false, message: 'Fondos insuficientes en la cuenta de origen' });
+        }
+
+        // 4. ¡La matemática bancaria! Actualizar los saldos
+        origin.balance -= data.Amount;  // Le restamos al que envía
+        destiny.balance += data.Amount; // Le sumamos al que recibe
+
+        // Guardamos los cambios de los saldos en la base de datos
+        await origin.save();
+        await destiny.save();
+
+        // 5. Crear el registro histórico de la transacción
         const transaction = new Transaction(data);
         await transaction.save();
 
-        // Opcional: Aquí podrías actualizar los saldos de origin y destiny (origin.balance -= Amount...)
-
         res.status(201).json({
             success: true,
-            message: 'Transacción registrada con éxito',
-            data: transaction
+            message: `Transacción de tipo ${data.Type} realizada con éxito`,
+            data: {
+                transaccion: transaction,
+                nuevoSaldoOrigen: origin.balance,
+                nuevoSaldoDestino: destiny.balance
+            }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al procesar', error: error.message });
+        res.status(500).json({ success: false, message: 'Error al procesar la transacción', error: error.message });
     }
 };
 

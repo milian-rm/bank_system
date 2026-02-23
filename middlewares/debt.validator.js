@@ -4,14 +4,10 @@ import { checkValidators } from './check-validators.js';
 export const validateCreateDebt = [
     body('title').notEmpty().withMessage('El título es requerido'),
     
-    body('debtorId')
-        .notEmpty().withMessage('ID de deudor requerido')
-        .isMongoId().withMessage('Debe ser un ID válido de MongoDB'),
-
     body('creditorId')
-        .notEmpty().withMessage('ID de acreedor requerido')
+        .optional() 
         .isMongoId().withMessage('Debe ser un ID válido de MongoDB'),
-
+        
     body('totalAmount')
         .isFloat({ min: 0.01 }).withMessage('Monto inválido'),
 

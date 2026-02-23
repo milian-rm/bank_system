@@ -23,3 +23,17 @@ export const validateCardId = [
     param('id').isMongoId().withMessage('ID de tarjeta inválido'),
     checkValidators
 ];
+
+
+
+export const validatePayCreditCard = [
+    param('id').isMongoId().withMessage('ID de tarjeta inválido'),
+    body('amount')
+        .notEmpty().withMessage('El monto es obligatorio')
+        .isNumeric().withMessage('El monto debe ser un número')
+        .isFloat({ min: 0.01 }).withMessage('El monto a pagar debe ser mayor a 0'),
+    body('accountId')
+        .notEmpty().withMessage('El ID de la cuenta es obligatorio')
+        .isMongoId().withMessage('El ID de la cuenta no es válido'),
+    checkValidators
+];

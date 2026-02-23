@@ -41,10 +41,10 @@ const routes = (app) => {
     app.use(`${BASE_URL}/users`, userRoutes);
     app.use(`${BASE_URL}/accounts`, accountRoutes);
     app.use(`${BASE_URL}/transactions`, transactionRoutes);
-    app.use(`${BASE_URL}/debt`, debtRoutes);
-    app.use(`${BASE_URL}/payment`, paymentRoutes);
+    app.use(`${BASE_URL}/debts`, debtRoutes);
+    app.use(`${BASE_URL}/payments`, paymentRoutes);
     app.use(`${BASE_URL}/cards`, cardRoutes);
-    app.use(`${BASE_URL}/auth`, authRoutes);
+    app.use(`${BASE_URL}/auths`, authRoutes);
 }
 
 
