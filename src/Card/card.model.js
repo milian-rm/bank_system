@@ -56,6 +56,11 @@ const cardSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    
+    isApproved: {
+        type: Boolean,
+        default: false 
+    },
     account: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Account',

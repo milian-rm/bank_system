@@ -26,7 +26,7 @@ export const createAccount = async (req, res) => {
 // Obtener todas las cuentas (activas)
 export const getAccounts = async (req, res) => {
     try {
-        // .populate trae los datos del ID 'user'
+
         const accounts = await Account.find({ status: true })
             .populate('user', 'UserName UserSurname UserEmail'); 
 
@@ -36,7 +36,11 @@ export const getAccounts = async (req, res) => {
             accounts
         });
     } catch (error) {
-        // ... manejo de error igual ...
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener las cuentas',
+            error: error.message
+        });
     }
 };
 
@@ -49,7 +53,7 @@ export const changeAccountStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Cuenta no encontrada' });
         }
 
-        // Invierte el estado actual (si es true pasa a false, y viceversa)
+       
         account.status = !account.status;
         await account.save();
 

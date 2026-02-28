@@ -48,10 +48,9 @@ export const createCard = async (req, res) => {
     try {
         const data = req.body;
 
-        // 1. Validar que la cuenta exista
-        const accountExist = await Account.findById(data.account);
-        if (!accountExist) {
-            // Si se subió imagen pero la cuenta falla, la borramos
+
+        const account = await Account.findById(data.account); 
+        if (!account) { 
             if (req.file && req.file.filename) {
                 await cloudinary.uploader.destroy(req.file.filename);
             }
@@ -60,6 +59,22 @@ export const createCard = async (req, res) => {
                 message: 'La cuenta bancaria especificada no existe' 
             });
         }
+
+        // Ahora sí, esta línea funcionará perfecto:
+        if (account.accountType === 'AHORRO' && data.type === 'CREDIT') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Las cuentas de AHORRO no pueden tener tarjetas de crédito asociadas.' 
+            });
+        }
+
+        // 💡 REGLA: Las de Débito se aprueban solas, las de Crédito esperan al ADMIN
+        if (data.type === 'DEBIT') {
+            data.isApproved = true;
+        } else {
+            data.isApproved = false; // Se queda pendiente
+        }
+
         
         // -----------------------------------------------------
         // 2. Lógica de Imagen Flexible (Archivo vs Link)
@@ -207,5 +222,58 @@ export const payCreditCard = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error al procesar el pago', error: error.message });
+    }
+};
+
+
+// Agrega esta función al final de card.controller.js
+export const chargeCard = async (req, res) => {
+    try {
+        const { id } = req.params; 
+        const { amount, description } = req.body; 
+
+        const card = await Card.findById(id);
+        if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+
+        if (!card.isApproved) return res.status(400).json({ success: false, message: 'Transacción denegada: La tarjeta aún no ha sido aprobada por el banco.' });
+        if (!card.isActive) return res.status(400).json({ success: false, message: 'Transacción denegada: La tarjeta está inactiva o bloqueada.' });
+
+        const [month, year] = card.expirationDate.split('/');
+        const expirationDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
+        const currentDate = new Date();
+        
+        if (currentDate > expirationDate) return res.status(400).json({ success: false, message: 'Transacción denegada: La tarjeta está vencida.' });
+
+        const availableCredit = card.creditLimit - card.consumedAmount;
+        if (amount > availableCredit) return res.status(400).json({ success: false, message: `Fondos insuficientes. Límite disponible: Q${availableCredit.toFixed(2)}` });
+
+        card.consumedAmount += amount; 
+        await card.save();
+
+        // NOTA: Cuando Roberto termine su lógica, aquí llamaremos al Transaction.create()
+        
+        res.status(200).json({
+            success: true, message: 'Compra realizada con éxito',
+            data: { tarjeta: card.cardNumber.slice(-4), montoCompra: amount, nuevoSaldoConsumido: card.consumedAmount }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al procesar la compra', error: error.message });
+    }
+};
+
+export const approveCard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const card = await Card.findById(id);
+        
+        if (!card) return res.status(404).json({ success: false, message: 'Tarjeta no encontrada' });
+        if (card.isApproved) return res.status(400).json({ success: false, message: 'Esta tarjeta ya estaba aprobada' });
+
+        card.isApproved = true;
+        await card.save();
+
+        res.status(200).json({ success: true, message: 'Tarjeta de crédito aprobada exitosamente por el banco.', data: card });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error al aprobar tarjeta', error: error.message });
     }
 };

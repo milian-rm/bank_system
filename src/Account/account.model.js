@@ -29,7 +29,12 @@ const accountSchema = Schema({
     status: {
         type: Boolean,
         default: true
-    }
+    },
+    bank: {
+        type: String,
+        enum: ['Banco Kinal', 'Banco Industrial', 'Banrural', 'BAC', 'G&T Continental', 'Promerica'],
+        default: 'Banco Kinal'
+    },
 }, {
     timestamps: true,
     versionKey: false
