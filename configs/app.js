@@ -25,6 +25,8 @@ import loanApplicationRoutes from '../src/LoanApplication/loanApplication.routes
 import loanRoutes from '../src/Loan/loan.routes.js';
 import exchangeRoutes from '../src/Exchange/exchange.routes.js';
 import favoriteRoutes from '../src/Favorite/favorite.routes.js';
+import productRoutes from '../src/Product/product.routes.js';
+
 
 const middleware = (app) => {
     app.use(helmet(helmetConfiguration)); // Configuramos Helmet
@@ -53,6 +55,7 @@ const routes = (app) => {
     app.use(`${BASE_URL}/loans`, loanRoutes);
     app.use(`${BASE_URL}/exchange`, exchangeRoutes);
     app.use(`${BASE_URL}/favorites`, favoriteRoutes);
+    app.use(`${BASE_URL}/products`, productRoutes);
 }
 
 
