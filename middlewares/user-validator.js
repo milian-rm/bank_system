@@ -48,6 +48,19 @@ export const validateCreateUser = [
         .isIn(['ACTIVE', 'INACTIVE'])
         .withMessage('Estado no válido'),
 
+    body('UserAddress')
+        .notEmpty().withMessage('La dirección es requerida'),
+
+    body('UserPhone')
+        .notEmpty().withMessage('El celular es requerido'),
+
+    body('UserJob')
+        .notEmpty().withMessage('El nombre de trabajo es requerido'),
+
+    body('UserIncome')
+        .notEmpty().withMessage('Los ingresos mensuales son requeridos')
+        .isNumeric().withMessage('Los ingresos deben ser un número')
+        .isFloat({ min: 100 }).withMessage('Transacción denegada: Los ingresos mensuales deben ser iguales o mayores a Q100 para abrir una cuenta.'),    
     checkValidators,
 ];
 
@@ -96,7 +109,24 @@ export const validateUpdateUserRequest = [
         .optional()
         .isIn(['ACTIVE', 'INACTIVE'])
         .withMessage('Estado no válido'),
+    
+    body('UserAddress')
+        .optional()
+        .notEmpty().withMessage('La dirección es requerida'),
 
+    body('UserPhone')
+        .optional()
+        .notEmpty().withMessage('El celular es requerido'),
+
+    body('UserJob')
+        .optional()
+        .notEmpty().withMessage('El nombre de trabajo es requerido'),
+
+    body('UserIncome')
+        .optional()
+        .notEmpty().withMessage('Los ingresos mensuales son requeridos')
+        .isNumeric().withMessage('Los ingresos deben ser un número')
+        .isFloat({ min: 100 }).withMessage('Transacción denegada: Los ingresos mensuales deben ser iguales o mayores a Q100 para abrir una cuenta.'),
     checkValidators,
 ];
 
