@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getCards, createCard, updateCard, changeCardStatus, payCreditCard, chargeCard, approveCard } from './card.controller.js';
 import { validateCreateCard, validateCardId, validatePayCreditCard } from '../../middlewares/card.validator.js';
-import { uploadCardImage } from '../../middlewares/file-uploader.js'; // Asegúrate de definir esto en tus helpers
+import { uploadCardImage } from '../../middlewares/file-uploader.js'; 
 
 const router = Router();
 

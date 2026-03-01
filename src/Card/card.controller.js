@@ -68,7 +68,6 @@ export const createCard = async (req, res) => {
             });
         }
 
-        // 💡 REGLA: Las de Débito se aprueban solas, las de Crédito esperan al ADMIN
         if (data.type === 'DEBIT') {
             data.isApproved = true;
         } else {
@@ -76,7 +75,7 @@ export const createCard = async (req, res) => {
         }
 
         
-        // -----------------------------------------------------
+      
         // 2. Lógica de Imagen Flexible (Archivo vs Link)
         // -----------------------------------------------------
         if (req.file) {
