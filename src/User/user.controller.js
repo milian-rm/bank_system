@@ -1,5 +1,5 @@
 import User from './user.model.js';
-import Account from '../Account/account.model.js';
+
 
 export const getUsers = async (req, res) => {
   try {
@@ -66,31 +66,13 @@ export const createUser = async (req, res) => {
   try {
     const userData = req.body;
 
-    // 1. Guardamos al usuario (ya pasó por las validaciones de los Q100)
     const user = new User(userData);
     await user.save();
-
-    // 2. Magia: Si es un cliente normal (USER), le generamos su cuenta bancaria automáticamente
-    let newAccount = null;
-    if (user.UserRol === 'USER' || !user.UserRol) {
-        // Genera un número de 10 dígitos aleatorio
-        const randomAccountNumber = Math.floor(Math.random() * 9000000000) + 1000000000; 
-        
-        newAccount = new Account({
-            accountNumber: randomAccountNumber.toString(),
-            accountType: 'MONETARIA', // Por defecto
-            balance: 0,
-            user: user._id,
-            bank: 'Banco Kinal'
-        });
-        await newAccount.save();
-    }
 
     res.status(201).json({
       success: true,
       message: 'Usuario creado exitosamente',
       data: user,
-      cuentaAsignada: newAccount // Devolvemos la cuenta generada para que el Admin la vea
     });
   } catch (error) {
     res.status(400).json({
