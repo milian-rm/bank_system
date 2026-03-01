@@ -1,30 +1,32 @@
 'use strict';
 
 import { Router } from 'express';
-import {
-    getTransactions,
-    createTransaction,
-    getTransactionById
-} from '../Transaction/transaction.controller.js';
+import { validateJWT } from '../../middlewares/validate-jwt.js';
 
 import {
-    validateCreateTransaction,
-    validateTransactionId
+    createTransaction,
+    getTransactions
+} from './transaction.controller.js';
+
+import {
+    validateCreateTransaction
 } from '../../middlewares/transaction.validator.js';
 
 const router = Router();
 
-// Obtener historial
-router.get('/', getTransactions);
-
-// Obtener detalle de una transacción
-router.get('/:id', validateTransactionId, getTransactionById);
-
-// Crear nueva transacción
+// Crear transacción
 router.post(
     '/',
+    validateJWT,
     validateCreateTransaction,
     createTransaction
+);
+
+// Listar transacciones del usuario
+router.get(
+    '/',
+    validateJWT,
+    getTransactions
 );
 
 export default router;

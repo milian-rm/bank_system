@@ -1,99 +1,142 @@
+'use strict';
+
 import Transaction from './transaction.model.js';
 import Account from '../Account/account.model.js';
+import Card from '../Card/card.model.js';
+import Loan from '../Loan/loan.model.js';
+import { convertCurrency } from '../Exchange/exchange.service.js';
 
-// 1. Crear Transacción (Con lógica de descuento de saldo básica)
 export const createTransaction = async (req, res) => {
     try {
-        const data = req.body;
-        
-        // 1. Validar que las cuentas existan
-        const origin = await Account.findById(data.AccountOriginId);
-        const destiny = await Account.findById(data.AccountDestinyId);
+        const {
+            type, amount, currency = 'GTQ',
+            originAccount, destinationAccount,
+            card, loan, description
+        } = req.body;
 
-        if (!origin || !destiny) {
-            return res.status(404).json({ success: false, message: 'Una de las cuentas no existe' });
+        const account = await Account.findById(originAccount);
+        if (!account) return res.status(404).json({ success: false, message: 'Cuenta origen no encontrada' });
+
+        const conversionOrigen = await convertCurrency(amount, currency, account.currency);
+        const montoParaOrigen = Number(conversionOrigen.result);
+        const rate = conversionOrigen.rate;
+
+        const { result: amountInGTQ } = await convertCurrency(amount, currency, 'GTQ');
+
+        switch (type) {
+            case 'DEPOSIT':
+                account.balance += montoParaOrigen;
+                break;
+
+            case 'WITHDRAWAL':
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+                account.balance -= montoParaOrigen;
+                break;
+
+            case 'TRANSFER':
+                if (!destinationAccount)
+                    return res.status(400).json({ success: false, message: 'Cuenta destino requerida' });
+
+                // BUSCAR CUENTA DESTINO
+                const destAccount = await Account.findById(destinationAccount);
+                if (!destAccount)
+                    return res.status(404).json({ success: false, message: 'Cuenta destino no encontrada' });
+
+                // CONVERTIR MONTO A LA MONEDA DE LA CUENTA DESTINO
+                const conversionDest = await convertCurrency(amount, currency, destAccount.currency);
+                const montoParaDestino = Number(conversionDest.result);
+
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+
+                account.balance -= montoParaOrigen;
+                destAccount.balance += montoParaDestino;
+                
+                await destAccount.save();
+                break; 
+
+            case 'CARD_PAYMENT':
+            case 'SERVICE_PAYMENT':
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+                account.balance -= montoParaOrigen;
+                break;
+
+            case 'LOAN_PAYMENT':
+                const loanData = await Loan.findById(loan);
+                if (!loanData) return res.status(404).json({ success: false, message: 'Préstamo no encontrado' });
+
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+
+                account.balance -= montoParaOrigen;
+                loanData.remainingBalance -= montoParaOrigen; 
+                await loanData.save();
+                break;
+
+            default:
+                return res.status(400).json({ success: false, message: 'Tipo de transacción inválido' });
         }
 
-        // 2. Validar que las cuentas estén activas (¡Integración con el Soft-Delete!)
-        if (!origin.status || !destiny.status) {
-            return res.status(400).json({ success: false, message: 'Una de las cuentas está inactiva y no puede realizar transacciones' });
-        }
+        await account.save();
 
-        // 3. Verificar saldo de la cuenta de origen
-        if (origin.balance < data.Amount) {
-            return res.status(400).json({ success: false, message: 'Fondos insuficientes en la cuenta de origen' });
-        }
+        const transaction = new Transaction({
+            type,
+            amount,
+            currency,
+            exchangeRate: rate,
+            amountInGTQ: Number(amountInGTQ),
+            originAccount,
+            destinationAccount,
+            card, loan, description
+        });
 
-        // 4. ¡La matemática bancaria! Actualizar los saldos
-        origin.balance -= data.Amount;  // Le restamos al que envía
-        destiny.balance += data.Amount; // Le sumamos al que recibe
-
-        // Guardamos los cambios de los saldos en la base de datos
-        await origin.save();
-        await destiny.save();
-
-        // 5. Crear el registro histórico de la transacción
-        const transaction = new Transaction(data);
         await transaction.save();
 
         res.status(201).json({
             success: true,
-            message: `Transacción de tipo ${data.Type} realizada con éxito`,
-            data: {
-                transaccion: transaction,
-                nuevoSaldoOrigen: origin.balance,
-                nuevoSaldoDestino: destiny.balance
-            }
+            message: 'Transacción realizada correctamente',
+            transaction
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al procesar la transacción', error: error.message });
+        res.status(500).json({ success: false, message: 'Error al procesar transacción', error: error.message });
     }
 };
 
-// 2. Obtener historial (Con Populate)
 export const getTransactions = async (req, res) => {
     try {
-        const { page = 1, limit = 10, accountId } = req.query;
-        
-        // Si mandan accountId, filtramos donde sea origen O destino
-        const filter = accountId ? { 
-            $or: [{ AccountOriginId: accountId }, { AccountDestinyId: accountId }] 
-        } : {};
+        const userId = req.user._id;
 
-        const transactions = await Transaction.find(filter)
-            .populate('AccountOriginId', 'accountNumber') // Ver número de cuenta origen
-            .populate('AccountDestinyId', 'accountNumber') // Ver número de cuenta destino
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .sort({ Date: -1 });
+        const userAccounts = await Account.find({ user: userId }).distinct('_id');
 
-        const total = await Transaction.countDocuments(filter);
-
+        const transactions = await Transaction.find({
+            originAccount: { $in: userAccounts }
+        })
+        .populate({
+            path: 'originAccount',
+            select: 'accountNumber accountType currency' 
+        })
+        .populate({
+            path: 'destinationAccount',
+            select: 'accountNumber accountType currency user',
+            populate: { path: 'user', select: 'UserName UserSurname' } 
+        })
+        .populate('card', 'cardNumber type')
+        .populate('loan', 'loanType amount')
+        .sort({ createdAt: -1 }); 
         res.status(200).json({
             success: true,
-            data: transactions,
-            pagination: {
-                total,
-                page: parseInt(page),
-                limit: parseInt(limit)
-            }
+            total: transactions.length,
+            transactions
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al obtener transacciones', error: error.message });
-    }
-};
-
-export const getTransactionById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const transaction = await Transaction.findById(id)
-            .populate('AccountOriginId', 'accountNumber')
-            .populate('AccountDestinyId', 'accountNumber');
-
-        if (!transaction) return res.status(404).json({ success: false, message: 'No encontrado' });
-
-        res.status(200).json({ success: true, data: transaction });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener el historial de transacciones',
+            error: error.message
+        });
     }
 };

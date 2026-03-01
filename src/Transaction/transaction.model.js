@@ -1,37 +1,71 @@
-import { Schema, model } from 'mongoose';
+'use strict';
 
-const transactionSchema = Schema({
-    AccountOriginId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Account',
-        required: true,
+import mongoose from 'mongoose';
+
+const { Schema, model } = mongoose;
+
+const transactionSchema = new Schema(
+    {
+        type: {
+            type: String,
+            enum: [
+                'DEPOSIT',
+                'WITHDRAWAL',
+                'TRANSFER',
+                'SERVICE_PAYMENT',
+                'LOAN_PAYMENT',
+                'CARD_PAYMENT',
+                'FEE'
+            ],
+            required: true
+        },
+        amount: {
+            type: Number,
+            required: true,
+            min: 0.01
+        },
+        currency: {
+            type: String,
+            enum: ['GTQ', 'USD', 'EUR', 'MXN'],
+            default: 'GTQ'
+        },
+        exchangeRate: {
+            type: Number
+        },
+        amountInGTQ: {
+            type: Number,
+            required: true
+        },
+        originAccount: {
+            type: Schema.Types.ObjectId,
+            ref: 'Account',
+            required: true
+        },
+        destinationAccount: {
+            type: Schema.Types.ObjectId,
+            ref: 'Account'
+        },
+        card: {
+            type: Schema.Types.ObjectId,
+            ref: 'Card'
+        },
+        loan: {
+            type: Schema.Types.ObjectId,
+            ref: 'Loan'
+        },
+        description: {
+            type: String,
+            maxlength: 255
+        },
+        status: {
+            type: String,
+            enum: ['COMPLETED', 'FAILED'],
+            default: 'COMPLETED'
+        }
     },
-    AccountDestinyId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Account',
-        required: true
-    },
-    Amount: {
-        type: Number,
-        required: true,
-        min: [0.01, 'El monto debe ser mayor a 0']
-    },
-    Date: {
-        type: Date,
-        default: Date.now
-    },
-    Type: {
-        type: String,
-        required: true,
-        enum: ['Transferencia', 'Deposito']
-    },
-    Description: {
-        type: String,
-        required: true,
-        maxLength: [255, 'La descripción no puede ser mayor a 255 caracteres']
+    {
+        timestamps: true
     }
-}, {
-    versionKey: false
-});
+);
 
 export default model('Transaction', transactionSchema);
