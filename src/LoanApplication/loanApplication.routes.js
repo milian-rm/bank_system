@@ -1,5 +1,13 @@
+'use strict';
+
 import { Router } from "express";
 import { validateJWT, isAdmin } from "../../middlewares/validate-jwt.js";
+
+import {
+    validateCreateLoanApplication,
+    validateUpdateLoanApplication,
+    validateLoanApplicationId
+} from "../../middlewares/loanApplication.validator.js";
 
 import {
     createLoanApplication,
@@ -10,62 +18,54 @@ import {
     getLoanApplications
 } from "./loanApplication.controller.js";
 
-import {
-    validateCreateLoanApplication,
-    validateUpdateLoanApplication
-} from "../../middlewares/LoanApplication-validator.js";
-
 const router = Router();
 
-
-// CLIENTE
-// Crear solicitud
+// Crear solicitud (cliente)
 router.post(
     '/',
     validateJWT,
     validateCreateLoanApplication,
     createLoanApplication
 );
-
-// Editar solicitud pero solo si es PENDING
+// Editar solicitud (cliente)
 router.put(
     '/:id',
     validateJWT,
+    validateLoanApplicationId,
     validateUpdateLoanApplication,
     updateLoanApplication
 );
-
-// Cancelar solicitud
-router.patch(
+// Cancelar solicitud (cliente)
+router.put(
     '/:id/cancel',
     validateJWT,
+    validateLoanApplicationId,
     cancelLoanApplication
 );
 
 
-// ADMIN
-// Ver todas las solicitudes
+// Aprobar solicitud (ADMIN)
+router.put(
+    '/:id/approve',
+    validateJWT,
+    isAdmin,
+    validateLoanApplicationId,
+    approveLoanApplication
+);
+// Rechazar solicitud (ADMIN)
+router.put(
+    '/:id/reject',
+    validateJWT,
+    isAdmin,
+    validateLoanApplicationId,
+    rejectLoanApplication
+);
+// Listar todas las solicitudes (ADMIN)
 router.get(
     '/',
     validateJWT,
     isAdmin,
     getLoanApplications
-);
-
-// Aprobar solicitud
-router.patch(
-    '/:id/approve',
-    validateJWT,
-    isAdmin,
-    approveLoanApplication
-);
-
-// Rechazar solicitud
-router.patch(
-    '/:id/reject',
-    validateJWT,
-    isAdmin,
-    rejectLoanApplication
 );
 
 export default router;

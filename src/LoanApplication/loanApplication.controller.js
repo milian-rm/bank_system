@@ -1,14 +1,14 @@
-// loanApplication.controller.js
+'use strict';
 
 import LoanApplication from "./loanApplication.model.js";
-//import Loan from "../Loan/loan.model.js";
+import Loan from "../Loan/loan.model.js";
 import Account from "../Account/account.model.js";
 
 
-// 📌 Crear solicitud (Cliente)
+// Crear solicitud
 export const createLoanApplication = async (req, res) => {
     try {
-        const userId = req.user.uid; // Token
+        const userId = req.user._id;
         const data = req.body;
 
         const application = new LoanApplication({
@@ -34,8 +34,7 @@ export const createLoanApplication = async (req, res) => {
 };
 
 
-
-//  Editar solo si la solicitud aún está pendiente
+// Editar solicitud (solo si está PENDING y es del usuario)
 export const updateLoanApplication = async (req, res) => {
     try {
         const { id } = req.params;
@@ -48,6 +47,9 @@ export const updateLoanApplication = async (req, res) => {
 
         if (application.status !== 'PENDING')
             return res.status(400).json({ success: false, message: 'No se puede modificar esta solicitud' });
+
+        if (application.applicant.toString() !== req.user._id.toString())
+            return res.status(403).json({ success: false, message: 'No autorizado' });
 
         Object.assign(application, data);
         await application.save();
@@ -64,8 +66,7 @@ export const updateLoanApplication = async (req, res) => {
 };
 
 
-
-// Cancelar solicitud
+// Cancelar solicitud (solo si está PENDING y es del usuario)
 export const cancelLoanApplication = async (req, res) => {
     try {
         const { id } = req.params;
@@ -77,6 +78,9 @@ export const cancelLoanApplication = async (req, res) => {
 
         if (application.status !== 'PENDING')
             return res.status(400).json({ success: false, message: 'No se puede cancelar esta solicitud' });
+
+        if (application.applicant.toString() !== req.user._id.toString())
+            return res.status(403).json({ success: false, message: 'No autorizado' });
 
         application.status = 'CANCELLED';
         await application.save();
@@ -92,12 +96,11 @@ export const cancelLoanApplication = async (req, res) => {
 };
 
 
-
-// Aprobar (ADMIN)
+// Aprobar solicitud (ADMIN)
 export const approveLoanApplication = async (req, res) => {
     try {
         const { id } = req.params;
-        const adminId = req.user.uid;
+        const adminId = req.user._id;
 
         const application = await LoanApplication.findById(id);
 
@@ -107,28 +110,30 @@ export const approveLoanApplication = async (req, res) => {
         if (application.status !== 'PENDING')
             return res.status(400).json({ success: false, message: 'Solicitud ya procesada' });
 
-        // Crear préstamo 
+        const account = await Account.findById(application.account);
+
+        if (!account)
+            return res.status(404).json({ success: false, message: 'Cuenta asociada no encontrada' });
+
         const loan = new Loan({
             borrower: application.applicant,
             account: application.account,
             amount: application.amount,
             termMonths: application.termMonths,
             interestRate: application.interestRate,
-            remainingBalance: application.amount
+            remainingBalance: application.amount,
+            status: 'ACTIVE',
+            startDate: new Date()
         });
 
         await loan.save();
 
-        // Depositar dinero en la cuenta
-        const account = await Account.findById(application.account);
         account.balance += application.amount;
         await account.save();
 
-        // Actualizar solicitud
         application.status = 'APPROVED';
         application.reviewedBy = adminId;
         application.reviewDate = new Date();
-
         await application.save();
 
         res.status(200).json({
@@ -143,10 +148,11 @@ export const approveLoanApplication = async (req, res) => {
 };
 
 
+// Rechazar solicitud (ADMIN)
 export const rejectLoanApplication = async (req, res) => {
     try {
         const { id } = req.params;
-        const adminId = req.user.uid;
+        const adminId = req.user._id;
 
         const application = await LoanApplication.findById(id);
 
@@ -159,7 +165,6 @@ export const rejectLoanApplication = async (req, res) => {
         application.status = 'REJECTED';
         application.reviewedBy = adminId;
         application.reviewDate = new Date();
-
         await application.save();
 
         res.status(200).json({
@@ -173,13 +178,13 @@ export const rejectLoanApplication = async (req, res) => {
 };
 
 
-
+// Listar solicitudes (ADMIN)
 export const getLoanApplications = async (req, res) => {
     try {
         const applications = await LoanApplication.find()
-            .populate('applicant', 'name email')
+            .populate('applicant', 'UserName UserEmail')
             .populate('account')
-            .populate('reviewedBy', 'name');
+            .populate('reviewedBy', 'UserName');
 
         res.status(200).json({
             success: true,
