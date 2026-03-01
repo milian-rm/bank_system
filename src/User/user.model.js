@@ -1,6 +1,7 @@
 'use strict';
 
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
 const userSchema = new mongoose.Schema({
     UserName: {
@@ -25,7 +26,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'El correo es requerido'],
         trim: true,
-        lowercase: true
+        lowercase: true,
+        unique: true
     },
     UserPassword: {
         type: String,
@@ -36,6 +38,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['ACTIVE', 'INACTIVE'], 
         default: 'ACTIVE' 
+    },
+    isVerified: { 
+        type: Boolean, 
+        default: false 
     },
     UserCreatedAt: {
         type: Date,
@@ -48,7 +54,23 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-userSchema.index({ UserEmail: 1 });
-userSchema.index({ UserDPI: 1 });
+// Encriptar antes de guardar
+userSchema.pre('save', async function () {
+    if (!this.isModified('UserPassword')) return;
+    const salt = await bcrypt.genSalt(10);
+    this.UserPassword = await bcrypt.hash(this.UserPassword, salt);
+});
+
+// Metodo para comparar contraseñas
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.UserPassword);
+};
+
+// Limpiar el json
+userSchema.methods.toJSON = function () {
+    const { __v, UserPassword, _id, ...user } = this.toObject();
+    user.uid = _id;
+    return user;
+};
 
 export default mongoose.model("User", userSchema);

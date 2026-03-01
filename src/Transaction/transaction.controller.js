@@ -1,76 +1,135 @@
+'use strict';
+
 import Transaction from './transaction.model.js';
 import Account from '../Account/account.model.js';
+import Card from '../Card/card.model.js';
+import Loan from '../Loan/loan.model.js';
+import { convertCurrency } from '../Exchange/exchange.service.js';
 
-// 1. Crear Transacción (Con lógica de descuento de saldo básica)
+// 1. Crear una transacción (Mantenemos la lógica robusta de Roberto)
 export const createTransaction = async (req, res) => {
     try {
-        const data = req.body;
-        
-        // 1. Validar que las cuentas existan
-        const origin = await Account.findById(data.AccountOriginId);
-        const destiny = await Account.findById(data.AccountDestinyId);
+        const {
+            type, amount, currency = 'GTQ',
+            originAccount, destinationAccount,
+            card, loan, description
+        } = req.body;
 
-        if (!origin || !destiny) {
-            return res.status(404).json({ success: false, message: 'Una de las cuentas no existe' });
+        const account = await Account.findById(originAccount);
+        if (!account) return res.status(404).json({ success: false, message: 'Cuenta origen no encontrada' });
+        if (account.state === 'INACTIVA' || account.isActive === false) return res.status(400).json({ success: false, message: 'La cuenta origen está inactiva' });
+        const conversionOrigen = await convertCurrency(amount, currency, account.currency);
+        const montoParaOrigen = Number(conversionOrigen.result);
+        const rate = conversionOrigen.rate;
+
+        const { result: amountInGTQ } = await convertCurrency(amount, currency, 'GTQ');
+
+        switch (type) {
+            case 'DEPOSIT':
+                account.balance += montoParaOrigen;
+                break;
+
+            case 'WITHDRAWAL':
+            case 'CARD_PAYMENT':
+            case 'SERVICE_PAYMENT':
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+                account.balance -= montoParaOrigen;
+                break;
+
+            case 'TRANSFER':
+                if (!destinationAccount)
+                    return res.status(400).json({ success: false, message: 'Cuenta destino requerida' });
+
+                const destAccount = await Account.findById(destinationAccount);
+                if (!destAccount)
+                    return res.status(404).json({ success: false, message: 'Cuenta destino no encontrada' });
+                if (destAccount.state === 'INACTIVA' || destAccount.isActive === false) return res.status(400).json({ success: false, message: 'La cuenta destino está inactiva' });
+                const conversionDest = await convertCurrency(amount, currency, destAccount.currency);
+                const montoParaDestino = Number(conversionDest.result);
+
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+
+                account.balance -= montoParaOrigen;
+                destAccount.balance += montoParaDestino;
+                
+                await destAccount.save();
+                break; 
+            
+            case 'LOAN_PAYMENT':
+                const loanData = await Loan.findById(loan);
+                if (!loanData) return res.status(404).json({ success: false, message: 'Préstamo no encontrado' });
+
+                if (account.balance < montoParaOrigen)
+                    return res.status(400).json({ success: false, message: 'Fondos insuficientes' });
+
+                account.balance -= montoParaOrigen;
+                loanData.remainingBalance -= montoParaOrigen; 
+                await loanData.save();
+                break;
+
+            default:
+                return res.status(400).json({ success: false, message: 'Tipo de transacción inválido' });
         }
 
-        // 2. Validar que las cuentas estén activas (¡Integración con el Soft-Delete!)
-        if (!origin.status || !destiny.status) {
-            return res.status(400).json({ success: false, message: 'Una de las cuentas está inactiva y no puede realizar transacciones' });
-        }
+        await account.save();
 
-        // 3. Verificar saldo de la cuenta de origen
-        if (origin.balance < data.Amount) {
-            return res.status(400).json({ success: false, message: 'Fondos insuficientes en la cuenta de origen' });
-        }
+        const transaction = new Transaction({
+            type,
+            amount,
+            currency,
+            exchangeRate: rate,
+            amountInGTQ: Number(amountInGTQ),
+            originAccount,
+            destinationAccount,
+            card, loan, description
+        });
 
-        // 4. ¡La matemática bancaria! Actualizar los saldos
-        origin.balance -= data.Amount;  // Le restamos al que envía
-        destiny.balance += data.Amount; // Le sumamos al que recibe
-
-        // Guardamos los cambios de los saldos en la base de datos
-        await origin.save();
-        await destiny.save();
-
-        // 5. Crear el registro histórico de la transacción
-        const transaction = new Transaction(data);
         await transaction.save();
 
         res.status(201).json({
             success: true,
-            message: `Transacción de tipo ${data.Type} realizada con éxito`,
+            message: `Transacción de tipo ${type} realizada con éxito`,
             data: {
                 transaccion: transaction,
-                nuevoSaldoOrigen: origin.balance,
-                nuevoSaldoDestino: destiny.balance
+                nuevoSaldoOrigen: account.balance
             }
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al procesar la transacción', error: error.message });
+        res.status(500).json({ success: false, message: 'Error al procesar transacción', error: error.message });
     }
 };
 
-// 2. Obtener historial (Con Populate)
+// 2. Obtener todas las transacciones de un usuario general (La de Roberto)
 export const getTransactions = async (req, res) => {
     try {
-        const { page = 1, limit = 10, accountId } = req.query;
-        
-        // Si mandan accountId, filtramos donde sea origen O destino
-        const filter = accountId ? { 
-            $or: [{ AccountOriginId: accountId }, { AccountDestinyId: accountId }] 
-        } : {};
+        const userId = req.user._id;
 
-        const transactions = await Transaction.find(filter)
-            .populate('AccountOriginId', 'accountNumber') // Ver número de cuenta origen
-            .populate('AccountDestinyId', 'accountNumber') // Ver número de cuenta destino
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .sort({ Date: -1 });
+        const { page = 1, limit = 10 } = req.query;
 
-        const total = await Transaction.countDocuments(filter);
+        const userAccounts = await Account.find({ user: userId }).distinct('_id');
+
+        const transactions = await Transaction.find({
+            originAccount: { $in: userAccounts }
+        })
+        .populate({
+            path: 'originAccount',
+            select: 'accountNumber accountType currency bank' 
+        })
+        .populate({
+            path: 'destinationAccount',
+            select: 'accountNumber accountType currency bank user',
+            populate: { path: 'user', select: 'UserName UserSurname' } 
+        })
+        .populate('card', 'cardNumber type')
+        .populate('loan', 'loanType amount')
+        .sort({ createdAt: -1 }); 
 
         res.status(200).json({
             success: true,
+            total: transactions.length,
             data: transactions,
             pagination: {
                 total,
@@ -78,72 +137,58 @@ export const getTransactions = async (req, res) => {
                 limit: parseInt(limit)
             }
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error al obtener transacciones', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener el historial de transacciones',
+            error: error.message
+        });
     }
 };
 
-export const getTransactionById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const transaction = await Transaction.findById(id)
-            .populate('AccountOriginId', 'accountNumber')
-            .populate('AccountDestinyId', 'accountNumber');
-
-        if (!transaction) return res.status(404).json({ success: false, message: 'No encontrado' });
-
-        res.status(200).json({ success: true, data: transaction });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
-
-// Obtener el historial completo de una cuenta (entradas y salidas formateadas)
-// Obtener el historial completo de una cuenta (entradas y salidas formateadas)
+// 3. Obtener el historial ESPECÍFICO de una cuenta (Tu función, pero adaptada a las variables de Roberto)
 export const getAccountHistory = async (req, res) => {
     try {
-        const { id } = req.params; // ID de la cuenta bancaria del usuario
+        const { id } = req.params; 
 
-        // 1. Buscamos todas las salidas (Usamos AccountOriginId)
-        const salidas = await Transaction.find({ AccountOriginId: id })
-            .populate('AccountOriginId', 'accountNumber bank')
-            .populate('AccountDestinyId', 'accountNumber bank');
+        // 1. Buscamos todas las salidas (Usando la estructura de Roberto: originAccount)
+        const salidas = await Transaction.find({ originAccount: id })
+            .populate('originAccount', 'accountNumber bank')
+            .populate('destinationAccount', 'accountNumber bank');
 
-        // 2. Buscamos todas las entradas (Usamos AccountDestinyId)
-        const entradas = await Transaction.find({ AccountDestinyId: id })
-            .populate('AccountOriginId', 'accountNumber bank')
-            .populate('AccountDestinyId', 'accountNumber bank');
+        // 2. Buscamos todas las entradas (Usando la estructura de Roberto: destinationAccount)
+        const entradas = await Transaction.find({ destinationAccount: id })
+            .populate('originAccount', 'accountNumber bank')
+            .populate('destinationAccount', 'accountNumber bank');
 
-        // 3. Juntamos todo y lo ordenamos por la fecha (Tu base de datos usa "Date")
+        // 3. Juntamos y ordenamos (Usando el createdAt que usa Mongoose por defecto)
         let historyRaw = [...salidas, ...entradas];
-        historyRaw.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+        historyRaw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // 4. Mapeamos los datos para darles el formato visual
+        // 4. Mapeamos los datos para darles formato
         const historialFormateado = historyRaw.map(tx => {
-            // Verificamos si en esta transacción nuestra cuenta fue la que sacó el dinero
-            const esSalida = tx.AccountOriginId && tx.AccountOriginId._id.toString() === id;
+            const esSalida = tx.originAccount && tx.originAccount._id.toString() === id;
             
             const signo = esSalida ? '-' : '+';
             const tipoMovimiento = esSalida ? 'EGRESO' : 'INGRESO';
 
-            // Usamos "Type" (con mayúscula)
-            let descripcionMovimiento = tx.Type || 'Transacción'; 
+            let descripcionMovimiento = tx.type || 'Transacción'; 
 
-            if (esSalida && tx.AccountDestinyId) {
-                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.AccountDestinyId.accountNumber}`;
-            } else if (!esSalida && tx.AccountOriginId) {
-                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.AccountOriginId.accountNumber}`;
+            if (esSalida && tx.destinationAccount) {
+                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.destinationAccount.accountNumber}`;
+            } else if (!esSalida && tx.originAccount) {
+                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.originAccount.accountNumber}`;
             }
 
-            // Usamos "Amount" (con mayúscula)
             return {
                 idTransaccion: tx._id,
-                fecha: tx.Date,
+                fecha: tx.createdAt,
                 descripcion: descripcionMovimiento,
-                montoDisplay: `${signo}Q${tx.Amount.toFixed(2)}`,
-                montoReal: tx.Amount,
+                montoDisplay: `${signo}Q${tx.amount.toFixed(2)}`,
+                montoReal: tx.amount,
                 tipo: tipoMovimiento,
-                motivoOriginal: tx.Description // Le agregué la descripción que ponen en Postman para más contexto
+                motivoOriginal: tx.description 
             };
         });
 

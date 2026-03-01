@@ -1,4 +1,5 @@
 'use strict';
+import 'dotenv/config';
 
 //Importaciones
 import express from 'express';
@@ -20,6 +21,9 @@ import debtRoutes from '../src/Debt/debt.routes.js';
 import paymentRoutes from '../src/Payment/payment.routes.js';
 import cardRoutes from '../src/Card/card.routes.js';
 import authRoutes from '../src/Auth/auth.routes.js';
+import loanApplicationRoutes from '../src/LoanApplication/loanApplication.routes.js';
+import loanRoutes from '../src/Loan/loan.routes.js';
+import exchangeRoutes from '../src/Exchange/exchange.routes.js';
 
 
 const middleware = (app) => {
@@ -45,6 +49,10 @@ const routes = (app) => {
     app.use(`${BASE_URL}/payments`, paymentRoutes);
     app.use(`${BASE_URL}/cards`, cardRoutes);
     app.use(`${BASE_URL}/auths`, authRoutes);
+    app.use(`${BASE_URL}/loanApplications`, loanApplicationRoutes);
+    app.use(`${BASE_URL}/loans`, loanRoutes);
+    app.use(`${BASE_URL}/exchange`, exchangeRoutes);
+
 }
 
 

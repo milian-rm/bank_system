@@ -1,7 +1,32 @@
 import { body, param } from 'express-validator';
 import { checkValidators } from './check-validators.js';
 
+//Parte Roberto
 export const validateCreateTransaction = [
+    body('amount')
+        .notEmpty().withMessage('El monto es requerido')
+        .isFloat({ min: 0.01 }).withMessage('Monto inválido'),
+
+    body('type')
+        .notEmpty().withMessage('El tipo es requerido')
+        .isIn([
+            'DEPOSIT',
+            'CARD_WITHDRAWAL',
+            'SERVICE_PAYMENT',
+            'LOAN_PAYMENT',
+            'TRANSFER'
+        ]).withMessage('Tipo de transacción no válido'),
+
+    body('currency')
+        .optional()
+        .isIn(['GTQ', 'USD', 'EUR', 'MXN'])
+        .withMessage('Moneda no válida'),
+
+    body('exchangeRate')
+        .optional()
+        .isFloat({ min: 0.0001 })
+        .withMessage('Tipo de cambio inválido'),
+    //Parte Kevin
     body('AccountOriginId')
         .notEmpty().withMessage('El ID de cuenta de origen es requerido')
         .isMongoId().withMessage('Debe ser un ID válido de MongoDB'),
@@ -16,24 +41,10 @@ export const validateCreateTransaction = [
             return true;
         }),
 
-    body('Amount')
-        .notEmpty().withMessage('El monto es requerido')
-        .isFloat({ min: 0.01 }).withMessage('El monto debe ser mayor a 0.01'),
-
-    body('Type')
-        .notEmpty().withMessage('El tipo de transacción es requerido')
-        .isIn(['Transferencia', 'Deposito']).withMessage('Tipo no válido'),
-
-    body('Description')
-        .notEmpty().withMessage('La descripción es requerida'),
-
     checkValidators
 ];
 
-export const validateTransactionId = [
-    param('id').isMongoId().withMessage('ID de transacción no válido'),
-    checkValidators
-];
+
 
 
 export const validateHistoryId = [

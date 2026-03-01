@@ -16,6 +16,11 @@ const accountSchema = Schema({
             message: "Tipo de cuenta no válida"
         }
     },
+    currency: {
+        type: String,
+        enum: ['GTQ', 'USD', 'EUR', 'MXN'],
+        default: 'GTQ'
+    },
     balance: {
         type: Number,
         default: 0,
