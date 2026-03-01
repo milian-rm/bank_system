@@ -1,4 +1,5 @@
 'use strict';
+import 'dotenv/config';
 
 //Importaciones
 import express from 'express';
