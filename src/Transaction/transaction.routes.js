@@ -5,7 +5,8 @@ import { Router } from 'express';
 import {
     getTransactions,
     createTransaction,
-    getAccountHistory
+    getAccountHistory,
+    revertDeposit
 } from '../Transaction/transaction.controller.js';
 
 import {
@@ -39,6 +40,13 @@ router.get(
     '/',
     validateJWT,
     getTransactions
+);
+
+// Revertir depósito (1 minuto)
+router.put(
+    '/:id/revert',
+    validateJWT,
+    revertDeposit
 );
 
 export default router;

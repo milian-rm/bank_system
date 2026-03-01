@@ -59,9 +59,9 @@ const transactionSchema = new Schema(
         },
         status: {
             type: String,
-            enum: ['COMPLETED', 'FAILED'],
+            enum: ['COMPLETED', 'FAILED', 'REVERTED'],
             default: 'COMPLETED'
-        }
+        }      
     },
     {
         timestamps: true

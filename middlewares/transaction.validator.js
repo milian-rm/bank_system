@@ -32,6 +32,7 @@ export const validateCreateTransaction = [
         .isMongoId().withMessage('Debe ser un ID válido de MongoDB'),
 
     body('AccountDestinyId')
+        .optional()
         .notEmpty().withMessage('El ID de cuenta de destino es requerido')
         .isMongoId().withMessage('Debe ser un ID válido de MongoDB')
         .custom((value, { req }) => {

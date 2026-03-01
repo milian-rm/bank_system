@@ -11,11 +11,11 @@ export const createTransaction = async (req, res) => {
     try {
         const {
             type, amount, currency = 'GTQ',
-            originAccount, destinationAccount,
+            AccountOriginId, AccountDestinyId,
             card, loan, description
         } = req.body;
 
-        const account = await Account.findById(originAccount);
+        const account = await Account.findById(AccountOriginId);
         if (!account) return res.status(404).json({ success: false, message: 'Cuenta origen no encontrada' });
         if (account.state === 'INACTIVA' || account.isActive === false) return res.status(400).json({ success: false, message: 'La cuenta origen está inactiva' });
         const conversionOrigen = await convertCurrency(amount, currency, account.currency);
@@ -37,14 +37,47 @@ export const createTransaction = async (req, res) => {
                 account.balance -= montoParaOrigen;
                 break;
 
-            case 'TRANSFER':
-                if (!destinationAccount)
+                case 'TRANSFER':
+                if (!AccountDestinyId)
                     return res.status(400).json({ success: false, message: 'Cuenta destino requerida' });
 
-                const destAccount = await Account.findById(destinationAccount);
+                const destAccount = await Account.findById(AccountDestinyId);
                 if (!destAccount)
                     return res.status(404).json({ success: false, message: 'Cuenta destino no encontrada' });
-                if (destAccount.state === 'INACTIVA' || destAccount.isActive === false) return res.status(400).json({ success: false, message: 'La cuenta destino está inactiva' });
+                if (destAccount.status === false) return res.status(400).json({ success: false, message: 'La cuenta destino está inactiva' });
+
+                // --- REGLA 1: Límite de Q2000 por transferencia ---
+                if (amountInGTQ > 2000) {
+                    return res.status(400).json({ success: false, message: 'Transacción denegada: No puedes transferir más de Q2000 en una sola operación.' });
+                }
+
+                // --- REGLA 2: Límite diario de Q10,000 ---
+                // Calculamos el inicio y fin del día de hoy
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date();
+                endOfDay.setHours(23, 59, 59, 999);
+
+                // Sumamos todas las transferencias de hoy de esta cuenta
+                const todayTransfers = await Transaction.aggregate([
+                    { $match: { 
+                        originAccount: account._id, 
+                        type: 'TRANSFER', 
+                        status: 'COMPLETED',
+                        createdAt: { $gte: startOfDay, $lte: endOfDay }
+                    }},
+                    { $group: { _id: null, total: { $sum: "$amountInGTQ" } } }
+                ]);
+                
+                const totalToday = todayTransfers.length > 0 ? todayTransfers[0].total : 0;
+
+                if ((totalToday + amountInGTQ) > 10000) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Transacción denegada: Excedes el límite diario de Q10,000. Llevas transferido hoy: Q${totalToday}` 
+                    });
+                }
+
                 const conversionDest = await convertCurrency(amount, currency, destAccount.currency);
                 const montoParaDestino = Number(conversionDest.result);
 
@@ -55,7 +88,7 @@ export const createTransaction = async (req, res) => {
                 destAccount.balance += montoParaDestino;
                 
                 await destAccount.save();
-                break; 
+                break;
             
             case 'LOAN_PAYMENT':
                 const loanData = await Loan.findById(loan);
@@ -81,8 +114,8 @@ export const createTransaction = async (req, res) => {
             currency,
             exchangeRate: rate,
             amountInGTQ: Number(amountInGTQ),
-            originAccount,
-            destinationAccount,
+            originAccount: AccountOriginId,
+            destinationAccount: AccountDestinyId,
             card, loan, description
         });
 
@@ -112,14 +145,14 @@ export const getTransactions = async (req, res) => {
         const userAccounts = await Account.find({ user: userId }).distinct('_id');
 
         const transactions = await Transaction.find({
-            originAccount: { $in: userAccounts }
+            AccountOriginId: { $in: userAccounts }
         })
         .populate({
-            path: 'originAccount',
+            path: 'AccountOriginId',
             select: 'accountNumber accountType currency bank' 
         })
         .populate({
-            path: 'destinationAccount',
+            path: 'AccountDestinyId',
             select: 'accountNumber accountType currency bank user',
             populate: { path: 'user', select: 'UserName UserSurname' } 
         })
@@ -132,7 +165,7 @@ export const getTransactions = async (req, res) => {
             total: transactions.length,
             data: transactions,
             pagination: {
-                total,
+                total: transactions.length,
                 page: parseInt(page),
                 limit: parseInt(limit)
             }
@@ -152,15 +185,15 @@ export const getAccountHistory = async (req, res) => {
     try {
         const { id } = req.params; 
 
-        // 1. Buscamos todas las salidas (Usando la estructura de Roberto: originAccount)
-        const salidas = await Transaction.find({ originAccount: id })
-            .populate('originAccount', 'accountNumber bank')
-            .populate('destinationAccount', 'accountNumber bank');
+        // 1. Buscamos todas las salidas (Usando la estructura de Roberto: AccountOriginId)
+        const salidas = await Transaction.find({ AccountOriginId: id })
+            .populate('AccountOriginId', 'accountNumber bank')
+            .populate('AccountDestinyId', 'accountNumber bank');
 
-        // 2. Buscamos todas las entradas (Usando la estructura de Roberto: destinationAccount)
-        const entradas = await Transaction.find({ destinationAccount: id })
-            .populate('originAccount', 'accountNumber bank')
-            .populate('destinationAccount', 'accountNumber bank');
+        // 2. Buscamos todas las entradas (Usando la estructura de Roberto: AccountDestinyId)
+        const entradas = await Transaction.find({ AccountDestinyId: id })
+            .populate('AccountOriginId', 'accountNumber bank')
+            .populate('AccountDestinyId', 'accountNumber bank');
 
         // 3. Juntamos y ordenamos (Usando el createdAt que usa Mongoose por defecto)
         let historyRaw = [...salidas, ...entradas];
@@ -168,17 +201,17 @@ export const getAccountHistory = async (req, res) => {
 
         // 4. Mapeamos los datos para darles formato
         const historialFormateado = historyRaw.map(tx => {
-            const esSalida = tx.originAccount && tx.originAccount._id.toString() === id;
+            const esSalida = tx.AccountOriginId && tx.AccountOriginId._id.toString() === id;
             
             const signo = esSalida ? '-' : '+';
             const tipoMovimiento = esSalida ? 'EGRESO' : 'INGRESO';
 
             let descripcionMovimiento = tx.type || 'Transacción'; 
 
-            if (esSalida && tx.destinationAccount) {
-                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.destinationAccount.accountNumber}`;
-            } else if (!esSalida && tx.originAccount) {
-                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.originAccount.accountNumber}`;
+            if (esSalida && tx.AccountDestinyId) {
+                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.AccountDestinyId.accountNumber}`;
+            } else if (!esSalida && tx.AccountOriginId) {
+                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.AccountOriginId.accountNumber}`;
             }
 
             return {
@@ -205,5 +238,54 @@ export const getAccountHistory = async (req, res) => {
             message: 'Error al obtener el historial de la cuenta', 
             error: error.message 
         });
+    }
+};
+
+// Revertir un depósito (Solo si no ha pasado 1 minuto)
+export const revertDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const transaction = await Transaction.findById(id);
+
+        if (!transaction) return res.status(404).json({ success: false, message: 'Transacción no encontrada' });
+        if (transaction.type !== 'DEPOSIT') return res.status(400).json({ success: false, message: 'Solo se pueden revertir depósitos' });
+        if (transaction.status === 'REVERTED') return res.status(400).json({ success: false, message: 'Este depósito ya fue revertido' });
+
+        const now = new Date();
+        const diffInMs = now - new Date(transaction.createdAt);
+        const diffInMinutes = diffInMs / (1000 * 60);
+
+        if (diffInMinutes > 1) {
+            return res.status(400).json({ success: false, message: 'No se puede revertir: Ha pasado más de 1 minuto' });
+        }
+
+        // --- EL CAMBIO ESTÁ AQUÍ ---
+        // Tu modelo usa 'originAccount', NO 'AccountOriginId'
+        const account = await Account.findById(transaction.originAccount); 
+        
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'La cuenta asociada al depósito ya no existe' });
+        }
+
+        if (account.balance < transaction.amountInGTQ) {
+            return res.status(400).json({ success: false, message: 'No se puede revertir: Fondos insuficientes en la cuenta' });
+        }
+
+        account.balance -= transaction.amountInGTQ;
+        await account.save();
+
+        transaction.status = 'REVERTED';
+        transaction.description = transaction.description + ' (REVERTIDO)';
+        await transaction.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Depósito revertido exitosamente',
+            nuevoSaldo: account.balance
+        });
+
+    } catch (error) {
+        // Este es el error que te salió:
+        res.status(500).json({ success: false, message: 'Error al revertir', error: error.message });
     }
 };
