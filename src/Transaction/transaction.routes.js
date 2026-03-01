@@ -4,12 +4,14 @@ import { Router } from 'express';
 import {
     getTransactions,
     createTransaction,
-    getTransactionById
+    getTransactionById,
+    getAccountHistory
 } from '../Transaction/transaction.controller.js';
 
 import {
     validateCreateTransaction,
-    validateTransactionId
+    validateTransactionId,
+    validateHistoryId
 } from '../../middlewares/transaction.validator.js';
 
 const router = Router();
@@ -25,6 +27,12 @@ router.post(
     '/',
     validateCreateTransaction,
     createTransaction
+);
+
+router.get(
+    '/account/:id/history', 
+    validateHistoryId, 
+    getAccountHistory
 );
 
 export default router;

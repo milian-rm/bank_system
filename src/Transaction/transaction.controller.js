@@ -97,3 +97,68 @@ export const getTransactionById = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+// Obtener el historial completo de una cuenta (entradas y salidas formateadas)
+// Obtener el historial completo de una cuenta (entradas y salidas formateadas)
+export const getAccountHistory = async (req, res) => {
+    try {
+        const { id } = req.params; // ID de la cuenta bancaria del usuario
+
+        // 1. Buscamos todas las salidas (Usamos AccountOriginId)
+        const salidas = await Transaction.find({ AccountOriginId: id })
+            .populate('AccountOriginId', 'accountNumber bank')
+            .populate('AccountDestinyId', 'accountNumber bank');
+
+        // 2. Buscamos todas las entradas (Usamos AccountDestinyId)
+        const entradas = await Transaction.find({ AccountDestinyId: id })
+            .populate('AccountOriginId', 'accountNumber bank')
+            .populate('AccountDestinyId', 'accountNumber bank');
+
+        // 3. Juntamos todo y lo ordenamos por la fecha (Tu base de datos usa "Date")
+        let historyRaw = [...salidas, ...entradas];
+        historyRaw.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+        // 4. Mapeamos los datos para darles el formato visual
+        const historialFormateado = historyRaw.map(tx => {
+            // Verificamos si en esta transacción nuestra cuenta fue la que sacó el dinero
+            const esSalida = tx.AccountOriginId && tx.AccountOriginId._id.toString() === id;
+            
+            const signo = esSalida ? '-' : '+';
+            const tipoMovimiento = esSalida ? 'EGRESO' : 'INGRESO';
+
+            // Usamos "Type" (con mayúscula)
+            let descripcionMovimiento = tx.Type || 'Transacción'; 
+
+            if (esSalida && tx.AccountDestinyId) {
+                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.AccountDestinyId.accountNumber}`;
+            } else if (!esSalida && tx.AccountOriginId) {
+                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.AccountOriginId.accountNumber}`;
+            }
+
+            // Usamos "Amount" (con mayúscula)
+            return {
+                idTransaccion: tx._id,
+                fecha: tx.Date,
+                descripcion: descripcionMovimiento,
+                montoDisplay: `${signo}Q${tx.Amount.toFixed(2)}`,
+                montoReal: tx.Amount,
+                tipo: tipoMovimiento,
+                motivoOriginal: tx.Description // Le agregué la descripción que ponen en Postman para más contexto
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Historial de transacciones obtenido exitosamente',
+            totalMovimientos: historialFormateado.length,
+            data: historialFormateado
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener el historial de la cuenta', 
+            error: error.message 
+        });
+    }
+};

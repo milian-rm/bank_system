@@ -34,3 +34,10 @@ export const validateTransactionId = [
     param('id').isMongoId().withMessage('ID de transacción no válido'),
     checkValidators
 ];
+
+
+export const validateHistoryId = [
+    param('id')
+        .isMongoId().withMessage('El ID de la cuenta proporcionado no es un formato válido de MongoDB.'),
+    checkValidators
+];
