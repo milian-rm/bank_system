@@ -18,6 +18,26 @@ export const createTransaction = async (req, res) => {
         const account = await Account.findById(AccountOriginId);
         if (!account) return res.status(404).json({ success: false, message: 'Cuenta origen no encontrada' });
         if (account.state === 'INACTIVA' || account.isActive === false) return res.status(400).json({ success: false, message: 'La cuenta origen está inactiva' });
+
+        // --- INICIO DEL PARCHE DE SEGURIDAD ---
+        const loggedUserId = req.user._id.toString();
+        const loggedUserRole = req.user.UserRol;
+
+        // 1. Un usuario normal NO puede tocar el dinero de una cuenta que no es suya
+        if (account.user.toString() !== loggedUserId && loggedUserRole !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Fraude detectado: No puedes transferir fondos de una cuenta que no te pertenece.'
+            });
+        }
+
+        // 2. Un usuario normal NO puede hacer "DEPOSIT" (imprimir dinero de la nada)
+        if (type === 'DEPOSIT' && loggedUserRole !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Operación denegada: Solo los administradores o cajeros pueden hacer depósitos en efectivo.'
+            });
+        }
         const conversionOrigen = await convertCurrency(amount, currency, account.currency);
         const montoParaOrigen = Number(conversionOrigen.result);
         const rate = conversionOrigen.rate;
@@ -178,16 +198,19 @@ export const createTransaction = async (req, res) => {
         }
 
         await account.save();
-
+        
         const transaction = new Transaction({
             type,
             amount,
             currency,
             exchangeRate: rate,
             amountInGTQ: Number(amountInGTQ),
-            originAccount: AccountOriginId,
-            destinationAccount: AccountDestinyId,
-            card, loan, description
+            // Si es DEPOSIT, la cuenta de María es el DESTINO. Si no, es el ORIGEN.
+            originAccount: type === 'DEPOSIT' ? null : AccountOriginId,
+            destinationAccount: type === 'DEPOSIT' ? AccountOriginId : AccountDestinyId,
+            card,
+            loan,
+            description
         });
 
         await transaction.save();
@@ -256,33 +279,35 @@ export const getAccountHistory = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // 1. Buscamos todas las salidas (Usando la estructura de Roberto: AccountOriginId)
-        const salidas = await Transaction.find({ AccountOriginId: id })
-            .populate('AccountOriginId', 'accountNumber bank')
-            .populate('AccountDestinyId', 'accountNumber bank');
+        // 1. Buscamos todas las salidas (Usando originAccount que es como lo guardas abajo)
+        const salidas = await Transaction.find({ originAccount: id })
+            .populate('originAccount', 'accountNumber bank')
+            .populate('destinationAccount', 'accountNumber bank');
 
-        // 2. Buscamos todas las entradas (Usando la estructura de Roberto: AccountDestinyId)
-        const entradas = await Transaction.find({ AccountDestinyId: id })
-            .populate('AccountOriginId', 'accountNumber bank')
-            .populate('AccountDestinyId', 'accountNumber bank');
+        // 2. Buscamos todas las entradas (Usando destinationAccount)
+        const entradas = await Transaction.find({ destinationAccount: id })
+            .populate('originAccount', 'accountNumber bank')
+            .populate('destinationAccount', 'accountNumber bank');
 
-        // 3. Juntamos y ordenamos (Usando el createdAt que usa Mongoose por defecto)
+        // 3. Juntamos y ordenamos manualmente (Ya que no usamos $or)
         let historyRaw = [...salidas, ...entradas];
         historyRaw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         // 4. Mapeamos los datos para darles formato
         const historialFormateado = historyRaw.map(tx => {
-            const esSalida = tx.AccountOriginId && tx.AccountOriginId._id.toString() === id;
+            // Verificamos si es salida comparando el ID de la cuenta de origen
+            // Usamos .toString() porque uno es objeto de Mongo y el otro es String de la URL
+            const esSalida = tx.originAccount && tx.originAccount._id.toString() === id;
 
             const signo = esSalida ? '-' : '+';
             const tipoMovimiento = esSalida ? 'EGRESO' : 'INGRESO';
 
             let descripcionMovimiento = tx.type || 'Transacción';
 
-            if (esSalida && tx.AccountDestinyId) {
-                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.AccountDestinyId.accountNumber}`;
-            } else if (!esSalida && tx.AccountOriginId) {
-                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.AccountOriginId.accountNumber}`;
+            if (esSalida && tx.destinationAccount) {
+                descripcionMovimiento = `${descripcionMovimiento} a cuenta ${tx.destinationAccount.accountNumber}`;
+            } else if (!esSalida && tx.originAccount) {
+                descripcionMovimiento = `${descripcionMovimiento} de cuenta ${tx.originAccount.accountNumber}`;
             }
 
             return {

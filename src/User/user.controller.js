@@ -1,5 +1,7 @@
 import User from './user.model.js';
 import Account from '../Account/account.model.js';
+import { generateJWT } from '../../helpers/generate-jwt.js';
+import { sendTokenEmail } from '../../helpers/email.helper.js';
 
 export const getUsers = async (req, res) => {
   try {
@@ -81,8 +83,17 @@ export const createUser = async (req, res) => {
             bank: 'Banco Kinal'
         });
         await newAccount.save();
-    }
 
+      const token = await generateJWT(user._id, user.UserEmail, user.UserRol);
+        
+        // Envolvemos esto en un try-catch por si falla el correo, no rompa la creación de la cuenta
+        try {
+            await sendTokenEmail(user.UserEmail, token);
+        } catch (emailError) {
+            console.log("No se pudo enviar el correo de verificación:", emailError);
+        }  
+    }
+    
     res.status(201).json({
       success: true,
       message: 'Usuario creado exitosamente',
