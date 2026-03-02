@@ -12,25 +12,29 @@ import {
 const router = Router();
 
 // Obtener mis préstamos (cliente)
-router.get(
-    '/my',
+router.get('/',
     validateJWT,
+    hasRole('ADMIN'),
+    getLoans
+);
+
+router.get('/my-loans',
+    validateJWT,
+    hasRole('USER'),
     getMyLoans
 );
 
-// Obtener préstamo por ID
-router.get(
-    '/:id',
+router.post('/apply',
     validateJWT,
-    getLoanById
+    hasRole('USER'),
+    validateLoanApplication,
+    createLoanApplication
 );
 
-// Obtener todos los préstamos (ADMIN)
-router.get(
-    '/',
+router.put('/approve/:id',
     validateJWT,
-    isAdmin,
-    getAllLoans
+    hasRole('ADMIN'),
+    approveLoan
 );
 
 export default router;

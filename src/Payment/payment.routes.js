@@ -3,9 +3,18 @@ import { Router } from 'express';
 import { createPayment, getPayments } from './payment.controller.js';
 import { validatePayment } from '../../middlewares/payment.validator.js';
 
-const api = Router();
+const router = Router();
 
-api.post('/', [validatePayment], createPayment);
-api.get('/', getPayments);
+router.post('/',
+    validateJWT,
+    validatePayment,
+    createPayment
+);
 
-export default api;
+router.get('/',
+    validateJWT,
+    hasRole('ADMIN'),
+    getPayments
+);
+
+export default router;

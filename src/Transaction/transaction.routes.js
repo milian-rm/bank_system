@@ -22,12 +22,25 @@ import {
 const router = Router();
 
 // Crear transacción
-router.post(
-    '/',
+router.post('/transfer',
     validateJWT,
-    validateCreateTransaction,
-    createTransaction
+    hasRole('USER'),
+    validateTransfer,
+    transfer
 );
+
+router.post('/deposit',
+    validateJWT,
+    hasRole('ADMIN'),
+    validateDeposit,
+    deposit
+);
+
+router.put('/revert/:id',
+    validateJWT,
+    hasRole('ADMIN'),
+    revertDeposit
+)
 
 router.get(
     '/account/:id/history', 
@@ -35,18 +48,6 @@ router.get(
     getAccountHistory
 
 );
-// Listar transacciones del usuario
-router.get(
-    '/',
-    validateJWT,
-    getTransactions
-);
 
-// Revertir depósito (1 minuto)
-router.put(
-    '/:id/revert',
-    validateJWT,
-    revertDeposit
-);
 
 export default router;

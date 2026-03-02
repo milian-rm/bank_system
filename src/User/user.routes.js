@@ -18,24 +18,28 @@ import { validateJWT } from '../../middlewares/validate-jwt.js';
 
 const router = Router();
 
-router.get('/', getUsers);
-router.get('/:id', validateGetUserById, getUserById);
+router.get('/', validateJWT, hasRole('ADMIN'), getUsers);
 
-router.post(
-    '/',
-    validateCreateUser,
-    createUser
+router.get('/:id', 
+    validateJWT, 
+    validateGetUserById, 
+    getUserById
 );
 
-router.put(
-    '/:id',
+router.post('/', validateJWT, hasRole('ADMIN'), validateCreateUser, createUser);
+
+router.put('/:id',
     validateJWT,
-    validateUpdateUserRequest,
+    validateUpdateUserRequest, 
     updateUser
 );
 
-router.put('/:id/status', validateUserStatusChange, changeUserStatus);
-
+router.put('/:id/status',
+    validateJWT,
+    hasRole('ADMIN'),
+    validateUserStatusChange,
+    changeUserStatus
+);
 
 
 export default router;

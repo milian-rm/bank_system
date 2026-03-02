@@ -27,14 +27,24 @@ export const createAccount = async (req, res) => {
 export const getAccounts = async (req, res) => {
     try {
 
-        const accounts = await Account.find({ status: true })
-            .populate('user', 'UserName UserSurname UserEmail'); 
+        let accounts;
+
+        if (req.user.UserRol === 'USER') {
+            accounts = await Account.find({
+                user: req.user._id,
+                status: true
+            }).populate('user', 'UserName UserSurname UserEmail');
+        } else {
+            accounts = await Account.find({ status: true })
+                .populate('user', 'UserName UserSurname UserEmail');
+        }
 
         res.status(200).json({
             success: true,
             total: accounts.length,
             accounts
         });
+
     } catch (error) {
         res.status(500).json({
             success: false,

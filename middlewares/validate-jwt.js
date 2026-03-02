@@ -32,3 +32,23 @@ export const isAdmin = (req, res, next) => {
     }
     next();
 };
+
+export const hasRole = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Usuario no autenticado'
+            });
+        }
+
+        if (!roles.includes(req.user.UserRol)) {
+            return res.status(403).json({
+                success: false,
+                message: `Acceso permitido solo para: ${roles.join(', ')}`
+            });
+        }
+
+        next();
+    };
+};
