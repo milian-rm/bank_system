@@ -16,7 +16,7 @@ const router = Router();
 router.get('/',
     validateJWT,
     hasRole('ADMIN'),
-    getAllLoans // Corregido: antes decía getLoans
+    getAllLoans 
 );
 
 router.get('/my-loans',
