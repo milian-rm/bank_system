@@ -1,7 +1,9 @@
 'use strict';
 
 import { Router } from 'express';
-import { validateJWT, isAdmin } from '../../middlewares/validate-jwt.js';
+
+// IMPORTACIÓN CORREGIDA
+import { validateJWT, hasRole } from '../../middlewares/validate-jwt.js';
 
 import {
     getMyLoans,
@@ -11,11 +13,10 @@ import {
 
 const router = Router();
 
-// Obtener mis préstamos (cliente)
 router.get('/',
     validateJWT,
     hasRole('ADMIN'),
-    getLoans
+    getAllLoans // Corregido: antes decía getLoans
 );
 
 router.get('/my-loans',
@@ -24,17 +25,9 @@ router.get('/my-loans',
     getMyLoans
 );
 
-router.post('/apply',
+router.get('/:id',
     validateJWT,
-    hasRole('USER'),
-    validateLoanApplication,
-    createLoanApplication
-);
-
-router.put('/approve/:id',
-    validateJWT,
-    hasRole('ADMIN'),
-    approveLoan
+    getLoanById
 );
 
 export default router;

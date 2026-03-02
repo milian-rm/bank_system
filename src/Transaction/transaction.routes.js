@@ -1,7 +1,6 @@
 'use strict';
 
 import { Router } from 'express';
-
 import {
     getTransactions,
     createTransaction,
@@ -9,10 +8,8 @@ import {
     revertDeposit
 } from '../Transaction/transaction.controller.js';
 
-import {
-    validateJWT
-} from '../../middlewares/validate-jwt.js';
-
+// IMPORTACIONES DE SEGURIDAD CORREGIDAS
+import { validateJWT, hasRole } from '../../middlewares/validate-jwt.js';
 
 import {
     validateCreateTransaction,
@@ -21,33 +18,28 @@ import {
 
 const router = Router();
 
-// Crear transacción
-router.post('/transfer',
+// Usamos tu función unificada createTransaction que maneja depósitos y transferencias
+router.post('/',
     validateJWT,
-    hasRole('USER'),
-    validateTransfer,
-    transfer
-);
-
-router.post('/deposit',
-    validateJWT,
-    hasRole('ADMIN'),
-    validateDeposit,
-    deposit
+    validateCreateTransaction,
+    createTransaction
 );
 
 router.put('/revert/:id',
     validateJWT,
     hasRole('ADMIN'),
     revertDeposit
-)
-
-router.get(
-    '/account/:id/history', 
-    validateHistoryId, 
-    getAccountHistory
-
 );
 
+router.get('/account/:id/history', 
+    validateJWT,
+    validateHistoryId, 
+    getAccountHistory
+);
+
+router.get('/', 
+    validateJWT, 
+    getTransactions
+);
 
 export default router;
