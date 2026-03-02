@@ -14,6 +14,8 @@ import {
     validateGetUserById
 } from '../../middlewares/user-validator.js';
 
+import { validateJWT } from '../../middlewares/validate-jwt.js';
+
 const router = Router();
 
 router.get('/', getUsers);
@@ -27,11 +29,13 @@ router.post(
 
 router.put(
     '/:id',
+    validateJWT,
     validateUpdateUserRequest,
     updateUser
 );
 
 router.put('/:id/status', validateUserStatusChange, changeUserStatus);
+
 
 
 export default router;
