@@ -62,18 +62,19 @@ Un sistema integral para la administración de operaciones financieras, gestión
   node index.js
 
 ## 🏗️ Estructura del Proyecto
-
+```
 bank_system/
 ├── src/
 │   ├── api/
-│   │   ├── controllers/    # Controladores de la lógica de negocio
-│   │   ├── routes/         # Definición de rutas y endpoints
-│   │   └── middlewares/    # Validadores de JWT, Roles y Multer
-│   ├── models/             # Esquemas de datos (Mongoose)
-│   ├── services/           # Lógica compleja y servicios externos
-│   └── utils/              # Helpers y utilidades financieras
-├── public/                 # Archivos estáticos e imágenes subidas
-└── tests/                  # Pruebas de integración y unitarias
+│   │   ├── controllers/     
+│   │   ├── routes/         
+│   │   └── middlewares/    
+│   ├── models/             
+│   ├── services/          
+│   └── utils/              
+├── public/                 
+└── tests/                  
+```
 
 ## 🔌 API Endpoints
 ### 🔐 Autenticación
