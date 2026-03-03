@@ -1,54 +1,76 @@
-# Bank System
+# Banking System Documentation
 
-A comprehensive banking application designed for managing financial transactions efficiently.
+## Table of Contents
+1. [Features](#features)
+2. [Installation Instructions](#installation-instructions)
+3. [Usage Examples](#usage-examples)
+4. [Project Structure](#project-structure)
+5. [API Endpoints](#api-endpoints)
+   - [Accounts](#accounts)
+   - [Transfers](#transfers)
+   - [Deposits](#deposits)
+   - [Withdrawals](#withdrawals)
+   - [Reports](#reports)
+6. [Security Considerations](#security-considerations)
+7. [Contribution Guidelines](#contribution-guidelines)
 
 ## Features
-- User account management (registration, login, logout)
-- Account balance inquiry
-- Fund transfers between accounts
-- Transaction history tracking
-- Multi-currency support
+- Comprehensive banking functionalities
+- Secure transactions
+- User-friendly interface
 
-## Installation
-1. Clone the repository:
+## Installation Instructions
+1. Clone the repository
    ```bash
    git clone https://github.com/milian-rm/bank_system.git
+   ```
+2. Navigate to the project directory
+   ```bash
    cd bank_system
    ```
-2. Install dependencies:
+3. Install dependencies
    ```bash
    npm install
    ```
-3. Start the application:
+
+## Usage Examples
+- Start the application
    ```bash
    npm start
    ```
 
+## Project Structure
+- `src/` - Contains source files
+- `tests/` - Contains test files
+- `README.md` - Project documentation
+
 ## API Endpoints
-- `POST /api/register`: Create a new user account
-- `POST /api/login`: Authenticate user and receive a token
-- `GET /api/account/:id/balance`: Retrieve account balance
-- `POST /api/transfer`: Transfer funds between accounts
-- `GET /api/transactions`: Get transaction history
+### Accounts
+- `GET /api/accounts` - Retrieve all accounts
+- `POST /api/accounts` - Create a new account
 
-## Technologies
-- Node.js
-- Express.js
-- MongoDB
-- JWT (JSON Web Tokens)
+### Transfers
+- `POST /api/transfers` - Transfer funds between accounts
 
-## Security Measures
-- Password hashing using bcrypt
-- JWT for secure user authentication
-- Input validation to prevent SQL injection and XSS attacks
+### Deposits
+- `POST /api/deposits` - Deposit funds into an account
+
+### Withdrawals
+- `POST /api/withdrawals` - Withdraw funds from an account
+
+### Reports
+- `GET /api/reports` - Retrieve account reports
+
+## Security Considerations
+- Ensure to use HTTPS
+- Validate user inputs
+- Regularly update dependencies
 
 ## Contribution Guidelines
-1. Fork the repository
-2. Create a new branch: `git checkout -b feature/YourFeature`
-3. Make your changes
-4. Commit your changes: `git commit -m 'Add some feature'`
-5. Push to the branch: `git push origin feature/YourFeature`
-6. Create a pull request
+- Fork the repository
+- Create a feature branch
+- Submit a pull request
 
-## License
-This project is licensed under the MIT License.
+---
+
+*Last updated: 2026-03-03 13:17:50 UTC*
