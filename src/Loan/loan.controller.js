@@ -52,7 +52,7 @@ export const getLoanById = async (req, res) => {
         // Solo admin o dueño
         if (
             loan.borrower._id.toString() !== req.user._id.toString() &&
-            req.user.role !== 'ADMIN'
+            req.user.UserRol !== 'ADMIN'
         ) {
             return res.status(403).json({ success: false, message: 'No autorizado' });
         }

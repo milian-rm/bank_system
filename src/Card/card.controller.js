@@ -115,6 +115,15 @@ export const updateCard = async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
+        const userRole = req.user.UserRol;
+
+        if (userRole === 'USER') {
+            delete data.creditLimit;
+            delete data.isApproved;
+            delete data.type;
+            delete data.cardNumber;
+            delete data.account; 
+        }
 
         const currentCard = await Card.findById(id);
         if (!currentCard) {

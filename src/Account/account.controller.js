@@ -6,7 +6,7 @@ import Transaction from '../Transaction/transaction.model.js';
 export const createAccount = async (req, res) => {
     try {
         const data = req.body;
-        
+
         // --- LÓGICA DE GENERACIÓN ALEATORIA (Tarea 47) ---
         let isUnique = false;
         let generatedNumber = '';
@@ -15,7 +15,7 @@ export const createAccount = async (req, res) => {
         while (!isUnique) {
             // Genera un número aleatorio entre 1000000000 y 9999999999
             generatedNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-            
+
             // Busca si ya hay una cuenta con este número
             const existingAccount = await Account.findOne({ accountNumber: generatedNumber });
             if (!existingAccount) {
@@ -49,10 +49,13 @@ export const getAccounts = async (req, res) => {
     try {
 
         let accounts;
-
         if (req.user.UserRol === 'USER') {
             accounts = await Account.find({
-                user: req.user._id,
+                // Usamos $or para buscar por el objeto o por el string, por si las moscas
+                $or: [
+                    { user: req.user._id },
+                    { user: req.user._id.toString() }
+                ],
                 status: true
             }).populate('user', 'UserName UserSurname UserEmail');
         } else {
@@ -79,12 +82,12 @@ export const changeAccountStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const account = await Account.findById(id);
-        
+
         if (!account) {
             return res.status(404).json({ success: false, message: 'Cuenta no encontrada' });
         }
 
-       
+
         account.status = !account.status;
         await account.save();
 
@@ -101,13 +104,13 @@ export const changeAccountStatus = async (req, res) => {
 export const getAccountsByMovements = async (req, res) => {
     try {
         // Obtenemos si quiere orden 'asc' o 'desc' desde la URL, por defecto descendente
-        const { sort = 'desc' } = req.query; 
+        const { sort = 'desc' } = req.query;
 
         const accounts = await Account.aggregate([
             {
                 // Buscamos todas las transacciones vinculadas a esta cuenta
                 $lookup: {
-                    from: "transactions", 
+                    from: "transactions",
                     let: { accountId: "$_id" },
                     pipeline: [
                         {
@@ -137,7 +140,7 @@ export const getAccountsByMovements = async (req, res) => {
             {
                 // Ocultamos el arreglo gigante de transacciones para no saturar la respuesta
                 $project: {
-                    movements: 0 
+                    movements: 0
                 }
             }
         ]);
@@ -159,7 +162,7 @@ export const getAccountDetailsAndTop5 = async (req, res) => {
         const { id } = req.params;
 
         const account = await Account.findById(id).populate('user', 'UserName UserSurname UserDPI UserEmail');
-        
+
         if (!account) {
             return res.status(404).json({ success: false, message: 'Cuenta no encontrada' });
         }
@@ -168,8 +171,8 @@ export const getAccountDetailsAndTop5 = async (req, res) => {
         const lastMovements = await Transaction.find({
             $or: [{ originAccount: id }, { destinationAccount: id }]
         })
-        .sort({ createdAt: -1 }) // El más reciente primero
-        .limit(5);
+            .sort({ createdAt: -1 }) // El más reciente primero
+            .limit(5);
 
         res.status(200).json({
             success: true,
