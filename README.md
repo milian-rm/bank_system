@@ -76,44 +76,51 @@ bank_system/
 └── tests/                  # Pruebas de integración y unitarias
 
 ## 🔌 API Endpoints
-1. Gestión de usuarios
+### 🔐 Autenticación
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
+| POST | `/api/auth/register` | Registrar usuario |
+| POST | `/api/auth/login` | Iniciar sesión |
+| POST | `/api/auth/logout` | Cerrar sesión |
+
+### 👤 Gestión de Usuarios
+| Método | Endpoint | Descripción |
+| :--- | :--- | :--- |
 | POST | `/api/users` | Registrar un nuevo usuario (Solo ADMIN) |
 | GET | `/api/users` | Listar todos los usuarios del sistema (Solo ADMIN) |
 | GET | `/api/users/:id` | Obtener perfil detallado de un usuario |
 | PUT | `/api/users/:id` | Actualizar información de perfil personal |
 | PUT | `/api/users/:id/status` | Activar o desactivar cuenta de usuario (Solo ADMIN) |
 
-2. Cuentas Bancarias
+### 💰 Cuentas Bancarias
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | POST | `/api/accounts` | Crear una nueva cuenta bancaria (Solo ADMIN) |
 | GET | `/api/accounts` | Listar cuentas del usuario autenticado |
 | PUT | `/api/accounts/:id/status` | Cambiar estado de cuenta activa/inactiva (Solo ADMIN) |
 | GET | `/api/accounts/movements/ranking` | Ver ranking de cuentas con más movimientos (Solo ADMIN) |
 | GET | `/api/accounts/:id/details` | Detalles de cuenta y Top 5 movimientos (Solo ADMIN) |
 
-3. Tarjetas
+### 💳 Tarjetas
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | POST | `/api/cards` | Solicitar tarjeta con carga de imagen personalizada |
 | GET | `/api/cards` | Ver catálogo completo de tarjetas (Solo ADMIN) |
 | PUT | `/api/cards/:id` | Actualizar datos o imagen de la tarjeta |
 | PUT | `/api/cards/:id/status` | Activar o desactivar tarjeta (Solo ADMIN) |
 | PUT | `/api/cards/:id/approve` | Aprobar tarjeta de crédito pendiente (Solo ADMIN) |
 
-4. Transacciones
+### 💸 Transacciones
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | POST | `/api/transactions` | Realizar un nuevo depósito o transferencia |
 | GET | `/api/transactions` | Listar historial general de transacciones |
 | GET | `/api/transactions/account/:id/history` | Ver historial de movimientos de una cuenta específica |
 | PUT | `/api/transactions/revert/:id` | Revertir un depósito realizado por error (Solo ADMIN) |
 
-5. Solicitudes de prestamo
+### 📝 Solicitudes de Préstamo
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | POST | `/api/loan-applications` | Crear una nueva solicitud de préstamo |
 | PUT | `/api/loan-applications/:id` | Editar datos de una solicitud pendiente |
 | PUT | `/api/loan-applications/:id/cancel` | Cancelar una solicitud de préstamo |
@@ -121,24 +128,24 @@ bank_system/
 | PUT | `/api/loan-applications/:id/reject` | Rechazar solicitud de préstamo (Solo ADMIN) |
 | GET | `/api/loan-applications` | Listar todas las solicitudes del sistema (Solo ADMIN) |
 
-6. Prestamo
+### 🏦 Préstamos
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | GET | `/api/loans` | Listar todos los préstamos del banco (Solo ADMIN) |
 | GET | `/api/loans/my-loans` | Ver préstamos activos del usuario logueado |
 | GET | `/api/loans/:id` | Obtener detalles de un préstamo específico |
 
-7. Divisas y Favoritos
+### 💱 Divisas y Favoritos
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | POST | `/api/exchange/convert` | Calcular conversión entre distintas divisas |
 | POST | `/api/favorites` | Agregar una cuenta a la lista de favoritos |
 | GET | `/api/favorites/my-favorites` | Listar contactos favoritos del usuario |
 | DELETE | `/api/favorites/:id` | Eliminar una cuenta de la lista de favoritos |
 
-8. Productos bancarios
+### 📦 Productos Bancarios
 | Método | Endpoint | Descripción |
-|--------|----------|-------------|
+| :--- | :--- | :--- |
 | GET | `/api/products` | Listar catálogo de productos y servicios |
 | POST | `/api/products` | Crear nuevo producto bancario (Solo ADMIN) |
 | PUT | `/api/products/:id` | Actualizar producto existente (Solo ADMIN) |
