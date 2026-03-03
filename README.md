@@ -1,76 +1,75 @@
-# Banking System Documentation
+# Documentación del Sistema Bancario
 
-## Table of Contents
-1. [Features](#features)
-2. [Installation Instructions](#installation-instructions)
-3. [Usage Examples](#usage-examples)
-4. [Project Structure](#project-structure)
-5. [API Endpoints](#api-endpoints)
-   - [Accounts](#accounts)
-   - [Transfers](#transfers)
-   - [Deposits](#deposits)
-   - [Withdrawals](#withdrawals)
-   - [Reports](#reports)
-6. [Security Considerations](#security-considerations)
-7. [Contribution Guidelines](#contribution-guidelines)
+## Tabla de Contenidos
+1. [Características](#características)
+2. [Instrucciones de Instalación](#instrucciones-de-instalación)
+3. [Ejemplos de Uso](#ejemplos-de-uso)
+4. [Estructura del Proyecto](#estructura-del-proyecto)
+5. [Tecnologías](#tecnologías)
+6. [Endpoints de API](#endpoints-de-api)
+7. [Configuración](#configuración)
+8. [Guía de Contribución](#guía-de-contribución)
+9. [Consideraciones de Seguridad](#consideraciones-de-seguridad)
+10. [Información de Licencia](#información-de-licencia)
 
-## Features
-- Comprehensive banking functionalities
-- Secure transactions
-- User-friendly interface
+## Características
+- Gestión de cuentas bancarias
+- Transacciones seguras
+- Consultas de saldo en tiempo real
+- Generación de informes
 
-## Installation Instructions
-1. Clone the repository
-   ```bash
-   git clone https://github.com/milian-rm/bank_system.git
-   ```
-2. Navigate to the project directory
-   ```bash
-   cd bank_system
-   ```
-3. Install dependencies
-   ```bash
-   npm install
-   ```
+## Instrucciones de Instalación
+1. Clonar el repositorio: `git clone https://github.com/milian-rm/bank_system.git`
+2. Navegar al directorio del proyecto: `cd bank_system`
+3. Instalar las dependencias: `npm install`
 
-## Usage Examples
-- Start the application
-   ```bash
-   npm start
-   ```
+## Ejemplos de Uso
+- Crear una nueva cuenta:
+  ```
+  POST /api/accounts
+  ```
+- Consultar saldo:
+  ```
+  GET /api/accounts/{accountId}/balance
+  ```
 
-## Project Structure
-- `src/` - Contains source files
-- `tests/` - Contains test files
-- `README.md` - Project documentation
+## Estructura del Proyecto
+```
+bank_system/
+├── src/
+│   ├── controllers/
+│   ├── models/
+│   └── routes/
+├── tests/
+└── README.md
+```
 
-## API Endpoints
-### Accounts
-- `GET /api/accounts` - Retrieve all accounts
-- `POST /api/accounts` - Create a new account
+## Tecnologías
+- Node.js
+- Express
+- MongoDB
 
-### Transfers
-- `POST /api/transfers` - Transfer funds between accounts
+## Endpoints de API
+- **POST /api/accounts**: Crear una nueva cuenta
+- **GET /api/accounts/{id}**: Obtener información de la cuenta
+- **POST /api/transactions**: Realizar una transacción
 
-### Deposits
-- `POST /api/deposits` - Deposit funds into an account
+## Configuración
+- Crear un archivo `.env` con las siguientes variables:
+  - `DB_URI`: URI de la base de datos
+  - `APP_PORT`: Puerto de la aplicación
 
-### Withdrawals
-- `POST /api/withdrawals` - Withdraw funds from an account
+## Guía de Contribución
+1. Hacer un fork del repositorio
+2. Crear una nueva rama para tus cambios: `git checkout -b feature/nueva-funcionalidad`
+3. Hacer commit de tus cambios: `git commit -m 'Añadir nueva funcionalidad'`
+4. Hacer push a la rama: `git push origin feature/nueva-funcionalidad`
+5. Crear un pull request
 
-### Reports
-- `GET /api/reports` - Retrieve account reports
+## Consideraciones de Seguridad
+- Mantener la biblioteca de dependencias actualizada
+- Implementar HTTPS
+- Validar todas las entradas de los usuarios
 
-## Security Considerations
-- Ensure to use HTTPS
-- Validate user inputs
-- Regularly update dependencies
-
-## Contribution Guidelines
-- Fork the repository
-- Create a feature branch
-- Submit a pull request
-
----
-
-*Last updated: 2026-03-03 13:17:50 UTC*
+## Información de Licencia
+Este proyecto está bajo la Licencia MIT. Consulte el archivo [LICENSE](LICENSE) para más detalles.
